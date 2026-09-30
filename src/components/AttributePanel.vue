@@ -97,7 +97,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useSimulatorStore } from '../stores/simulator.js'
-import { 是百分比词条 } from '../data/affinities.js'
+import { 是增伤词条 } from '../data/affinities.js'
 
 const store = useSimulatorStore()
 const 面板 = computed(() => store.面板)
@@ -182,8 +182,7 @@ const enhancedDamageBonusStats = computed(() => {
   for (const 装备 of Object.values(store.装备词条)) {
     for (const 词条 of Object.values(装备 || {})) {
       if (!词条?.名称 || !词条.值) continue
-      if (!是百分比词条(词条.名称)) continue
-      if (词条.名称.includes('伤害加成')) continue
+      if (!是增伤词条(词条.名称)) continue
       名称集.add(词条.名称)
     }
   }
