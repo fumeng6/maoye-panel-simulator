@@ -34,18 +34,12 @@
       </div>
 
       <div class="section-title">增伤属性</div>
-      <div v-for="item in 增伤列表" :key="item.名称" class="stat-row judgment">
+      <div v-for="item in 增伤列表" :key="item.名称" class="stat-row" :class="{ judgment: item.有效 }">
         <span class="stat-name">{{ item.名称 }}</span>
         <span class="stat-value">
           {{ item.原始 }}
           <span v-if="item.有效" class="effective-value">({{ item.有效 }})</span>
         </span>
-      </div>
-
-      <div class="section-title">生存属性</div>
-      <div v-for="item in 生存列表" :key="item.名称" class="stat-row">
-        <span class="stat-name">{{ item.名称 }}</span>
-        <span class="stat-value">{{ item.文本 }}</span>
       </div>
     </template>
 
@@ -125,21 +119,22 @@ const 穿透列表 = computed(() => {
     .filter((i) => i.文本 !== '0.0')
 })
 
+// 增伤属性：仅展示来自装备的增伤/增效类词条（与培养助手一致）
 const 增伤列表 = computed(() => {
   const 增益有效 = 面板.value?.增益有效面板 || {}
-  const 名称集 = [
-    '全武学增效', '全奇术增伤', '对首领单位增伤', '对玩家单位增伤',
-    '会心伤害加成', '会意伤害加成'
-  ]
-  const 额外 = new Set()
+  // 收集装备上的"装备来源增伤"词条：武器增伤、全武学增效、全奇术增伤、
+  // 对首领/玩家增伤，以及防具定音招式增伤/增疗等。
+  const 名称集 = new Set()
   for (const 装备 of Object.values(store.装备词条)) {
     for (const 词条 of Object.values(装备 || {})) {
-      if (词条?.名称 && 词条.值 && !名称集.includes(词条.名称) && 是百分比词条(词条.名称)) {
-        额外.add(词条.名称)
-      }
+      if (!词条?.名称 || !词条.值) continue
+      if (!是百分比词条(词条.名称)) continue
+      // 排除判定/伤害加成类，仅保留增伤/增效类
+      if (词条.名称.includes('伤害加成')) continue
+      名称集.add(词条.名称)
     }
   }
-  return [...名称集, ...额外]
+  return [...名称集]
     .map((名称) => {
       const 原始 = 格式化百分比(取(名称))
       const 有效数值 = 增益有效[名称]
@@ -152,12 +147,6 @@ const 增伤列表 = computed(() => {
     .filter((i) => i.原始 !== '0.0%')
 })
 
-const 生存列表 = computed(() =>
-  [
-    { 名称: '气血最大值', key: '气血最大值' },
-    { 名称: '外功防御', key: '外功防御' }
-  ].map((i) => ({ 名称: i.名称, 文本: 格式化整数(取(i.key)) }))
-)
 </script>
 
 <style scoped>
