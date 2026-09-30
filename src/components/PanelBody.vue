@@ -25,9 +25,12 @@
       </div>
 
       <div class="section-title">穿透属性</div>
-      <div v-for="item in 穿透列表" :key="item.名称" class="stat-row">
+      <div v-for="item in 穿透列表" :key="item.名称" class="stat-row" :class="{ judgment: item.有效 }">
         <span class="stat-name">{{ item.名称 }}</span>
-        <span class="stat-value">{{ item.文本 }}</span>
+        <span class="stat-value">
+          {{ item.文本 }}
+          <span v-if="item.有效" class="effective-value">({{ item.有效 }})</span>
+        </span>
       </div>
 
       <div class="section-title">增伤属性</div>
@@ -104,12 +107,21 @@ const 直接率列表 = computed(() =>
 )
 
 const 穿透列表 = computed(() => {
+  const 增益有效 = 面板.value?.增益有效面板 || {}
   const 列表 = [{ 名称: '外功穿透', key: '外功穿透' }]
   const 元素 = 面板.value?.本系属性
   if (元素) 列表.push({ 名称: `${元素}穿透`, key: `${元素}穿透` })
   if (取('无相穿透')) 列表.push({ 名称: '无相穿透', key: '无相穿透' })
   return 列表
-    .map((i) => ({ 名称: i.名称, 文本: 格式化穿透(取(i.key)) }))
+    .map((i) => {
+      const 原始 = 格式化穿透(取(i.key))
+      const 有效数值 = 增益有效[i.key]
+      return {
+        名称: i.名称,
+        文本: 原始,
+        有效: 有效数值 !== undefined ? 格式化穿透(有效数值) : ''
+      }
+    })
     .filter((i) => i.文本 !== '0.0')
 })
 

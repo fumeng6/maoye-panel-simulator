@@ -280,13 +280,18 @@ export const 神力词条 = Object.freeze([
 /** 所有防具定音招式增伤/增疗词条（扁平集合） */
 const 全部防具定音词条 = new Set(Object.values(防具定音词条).flat())
 
+/** 武器/首饰定音词条（通用定音库） */
+const 通用定音词条 = new Set(['无相穿透', '外功穿透', '外功抗性'])
+
 /**
  * 判断某词条是否受"增益抗性"影响。
- * 只有神力词条与定音词条中的增伤/增效类参与折算；心法、套装不折算。
+ * 范围 = 神力词条 + 全部定音词条（含防具招式与武器/首饰通用定音）。
+ * 心法、套装、武学天赋不折算。
  */
 export function 受增益抗性影响(名称) {
   if (神力词条.includes(名称)) return true
   if (全部防具定音词条.has(名称)) return true
+  if (通用定音词条.has(名称)) return true
   return false
 }
 
