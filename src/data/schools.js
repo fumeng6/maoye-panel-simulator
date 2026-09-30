@@ -200,6 +200,26 @@ export const 流派列表 = Object.freeze(
   }))
 )
 
+/**
+ * 流派卡片列表（与培养助手 SCHOOLS 口径一致）
+ * key = camelCase，name = 全名（如 鸣金虹）
+ */
+export const 流派卡片列表 = Object.freeze(
+  Object.entries(流派注册表).flatMap(([流派, 变体表]) =>
+    Object.keys(变体表).map((变体) => ({
+      流派,
+      变体,
+      全名: `${流派}${变体}`,
+      启用: true
+    }))
+  )
+)
+
+/** 判断流派卡片是否命中当前选择 */
+export function 是否命中流派卡片(卡片, 流派, 变体) {
+  return 卡片.流派 === 流派 && 卡片.变体 === 变体
+}
+
 /** 取某流派变体的配置 */
 export function 取流派配置(流派, 变体) {
   return 流派注册表?.[流派]?.[变体] || null

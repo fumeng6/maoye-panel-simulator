@@ -10,7 +10,6 @@
   --color-text-secondary: #909399;
   --color-text-placeholder: #c0c4cc;
   --color-text-heading: #1f2d3d;
-
   --color-bg-base: #fff;
   --color-bg-secondary: #f5f7fa;
   --color-bg-card: #fff;
@@ -30,6 +29,9 @@
   --color-danger: #f56c6c;
   --color-info: #909399;
   --color-primary: #409eff;
+  --color-primary-light-9: #ecf5ff;
+  --color-primary-light-7: #b3d8ff;
+  --color-grade-b-bg: #f0f9ff;
 
   --color-school-mingjin: #3b82f6;
   --color-school-lieshi: #e6a23c;
@@ -53,6 +55,7 @@
   --font-size-lg: 14px;
   --font-size-xl: 15px;
   --font-size-2xl: 16px;
+  --font-size-5xl: 20px;
 
   --radius-sm: 4px;
   --radius-md: 6px;

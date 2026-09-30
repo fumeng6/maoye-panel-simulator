@@ -21,6 +21,9 @@ import {
 } from '../data/affinities.js'
 import { 流派注册表 } from '../data/schools.js'
 
+/** 承音比例：将宫商角徵羽槽位数值设为满值的 94% */
+export const CHENGYIN_RATIO = 0.94
+
 /** 生成某部位的空白装备（宫 + 商角徵羽 + 定音） */
 function 建空白装备() {
   return {
@@ -29,7 +32,8 @@ function 建空白装备() {
     [词条槽.角]: { 名称: '', 值: 0 },
     [词条槽.徵]: { 名称: '', 值: 0 },
     [词条槽.羽]: { 名称: '', 值: 0 },
-    [词条槽.定音]: { 名称: '', 值: 0 }
+    [词条槽.定音]: { 名称: '', 值: 0 },
+    承音: false
   }
 }
 
@@ -82,6 +86,7 @@ export const useSimulatorStore = defineStore('simulator', {
       this.流派 = 流派
       this.变体 = 变体
       this.重置装备()
+      this.心法列表 = []
     },
 
     切换变体(变体) {
@@ -124,6 +129,32 @@ export const useSimulatorStore = defineStore('simulator', {
       this.装备词条[部位][槽位] = { 名称: '', 值: 0 }
     },
 
+    /** 清除某部位全部词条 */
+    清除部位(部位) {
+      this.装备词条[部位] = 建空白装备()
+    },
+
+    /**
+     * 对某部位应用承音：宫/商/角/徵/羽 五个槽位的数值改为满值的 94%。
+     * 定音槽不受承音影响。
+     */
+    应用承音(部位) {
+      const 装备 = this.装备词条[部位]
+      if (!装备) return
+      for (const 槽位 of [词条槽.宫, ...调律槽位]) {
+        const 词条 = 装备[槽位]
+        if (!词条?.名称) continue
+        const [, max] = 取词条范围(词条.名称)
+        词条.值 = max * CHENGYIN_RATIO
+      }
+      装备.承音 = true
+    },
+
+    /** 取消承音标记 */
+    取消承音(部位) {
+      if (this.装备词条[部位]) this.装备词条[部位].承音 = false
+    },
+
     /** 心法增删 */
     切换心法(名称) {
       const idx = this.心法列表.indexOf(名称)
@@ -132,6 +163,16 @@ export const useSimulatorStore = defineStore('simulator', {
       } else if (this.心法列表.length < 4) {
         this.心法列表.push(名称)
       }
+    },
+
+    /** 直接设置心法列表（对话框内选择时使用） */
+    设置心法列表(列表) {
+      this.心法列表 = [...(列表 || [])].slice(0, 4)
+    },
+
+    /** 清空心法 */
+    清空心法() {
+      this.心法列表 = []
     }
   }
 })
