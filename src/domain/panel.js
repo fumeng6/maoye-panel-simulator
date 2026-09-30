@@ -14,7 +14,7 @@
  */
 
 import { 基础面板 } from '../data/baseStats.js'
-import { 转化系数, 判定常量 } from '../data/constants.js'
+import { 转化系数, 判定常量, 增益抗性 } from '../data/constants.js'
 import {
   取流派配置,
   取武库加成,
@@ -24,7 +24,7 @@ import {
 } from '../data/schools.js'
 import { 心法属性 } from '../data/xinfa.js'
 import { 取套装 } from '../data/sets.js'
-import { 取词条范围, 是百分比词条 } from '../data/affinities.js'
+import { 取词条范围, 是百分比词条, 受增益抗性影响 } from '../data/affinities.js'
 
 function 数值(v) {
   const n = Number(v)
@@ -140,9 +140,19 @@ export function 计算面板({ 流派, 变体, 套装选择 = {}, 心法列表 =
   // 8) 判定属性有效值
   const 有效 = 计算判定有效值(面板)
 
+  // 9) 增益抗性折算（只作用于神力/定音类增伤；心法、套装不折算）
+  const 增益有效 = {}
+  const 抗性分母 = 1 + 增益抗性
+  for (const [名称, 值] of Object.entries(面板)) {
+    if (受增益抗性影响(名称)) {
+      增益有效[名称] = 数值(值) / 抗性分母
+    }
+  }
+
   return {
     原始面板: 面板,
     有效面板: 有效,
+    增益有效面板: 增益有效,
     本系属性: 本系 || null
   }
 }

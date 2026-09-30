@@ -38,7 +38,10 @@
       <div class="section-title">增伤属性</div>
       <div v-for="item in 增伤列表" :key="item.名称" class="row">
         <span class="name">{{ item.名称 }}</span>
-        <span class="value">{{ item.文本 }}</span>
+        <span class="value">
+          {{ item.原始 }}
+          <span v-if="item.有效" class="eff">({{ item.有效 }})</span>
+        </span>
       </div>
 
       <div class="section-title">生存属性</div>
@@ -125,6 +128,7 @@ const 穿透列表 = computed(() => {
 })
 
 const 增伤列表 = computed(() => {
+  const 增益有效 = 面板.value?.增益有效面板 || {}
   const 名称集 = [
     '全武学增效', '全奇术增伤', '对首领单位增伤', '对玩家单位增伤',
     '会心伤害加成', '会意伤害加成'
@@ -139,8 +143,16 @@ const 增伤列表 = computed(() => {
     }
   }
   return [...名称集, ...额外]
-    .map((名称) => ({ 名称, 文本: 格式化百分比(取(名称)) }))
-    .filter((i) => i.文本 !== '0.0%')
+    .map((名称) => {
+      const 原始 = 格式化百分比(取(名称))
+      const 有效数值 = 增益有效[名称]
+      return {
+        名称,
+        原始,
+        有效: 有效数值 !== undefined ? 格式化百分比(有效数值) : ''
+      }
+    })
+    .filter((i) => i.原始 !== '0.0%')
 })
 
 const 生存列表 = computed(() =>
