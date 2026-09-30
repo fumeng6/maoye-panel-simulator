@@ -124,16 +124,6 @@ export const useSimulatorStore = defineStore('simulator', {
       this.装备词条[部位][槽位] = { 名称: '', 值: 0 }
     },
 
-    /** 一键填满当前部位所有可填槽位 */
-    填满部位(部位) {
-      for (const 槽位 of [...调律槽位, 词条槽.宫, 词条槽.定音]) {
-        if (this.装备词条[部位][槽位].名称) continue
-        const 候选 = this.取可选词条(部位, 槽位)
-        if (!候选.length) continue
-        this.设置词条(部位, 槽位, 候选[0])
-      }
-    },
-
     /** 心法增删 */
     切换心法(名称) {
       const idx = this.心法列表.indexOf(名称)
@@ -142,11 +132,6 @@ export const useSimulatorStore = defineStore('simulator', {
       } else if (this.心法列表.length < 4) {
         this.心法列表.push(名称)
       }
-    },
-
-    /** 是否已选某词条（用于跨槽互斥提示，商角徵羽互不重复） */
-    已选词条(部位, 槽位) {
-      return this.装备词条[部位][槽位].名称
     }
   }
 })
