@@ -1,7 +1,10 @@
 <template>
   <div class="loadout-view">
-    <el-scrollbar class="loadout-scroll">
-      <section class="block">
+    <div class="view-header">
+      <h3>流派与心法</h3>
+    </div>
+    <el-scrollbar class="view-content">
+      <div class="block">
         <div class="block-title">流派</div>
         <div class="chip-row">
           <button
@@ -25,9 +28,9 @@
             {{ v }}
           </button>
         </div>
-      </section>
+      </div>
 
-      <section class="block">
+      <div class="block">
         <div class="block-title">心法（最多 4 本）</div>
         <div class="picked">
           <span
@@ -53,9 +56,9 @@
             {{ x }}
           </button>
         </div>
-      </section>
+      </div>
 
-      <section class="block">
+      <div class="block">
         <div class="block-title">套装</div>
         <div class="set-field">
           <span class="set-label">弓诀</span>
@@ -75,7 +78,7 @@
             <el-option v-for="s in 套装列表('防具')" :key="s.键" :label="s.名称" :value="s.键" />
           </el-select>
         </div>
-      </section>
+      </div>
     </el-scrollbar>
   </div>
 </template>
@@ -121,17 +124,35 @@ function 套装列表(分类) {
 <style scoped>
 .loadout-view {
   height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 16px 16px 0;
 }
-.loadout-scroll :deep(.el-scrollbar__view) {
-  padding: 16px;
+.view-header {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+.view-header h3 {
+  margin: 0;
+  font-size: var(--font-size-2xl);
+  font-weight: 600;
+}
+.view-content {
+  flex: 1;
+  min-height: 0;
+}
+.view-content :deep(.el-scrollbar__view) {
+  padding: 12px 0 16px;
 }
 .block {
   margin-bottom: 20px;
 }
 .block-title {
-  font-size: 12px;
-  color: var(--text-soft);
-  letter-spacing: 1px;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.5px;
   margin-bottom: 8px;
 }
 .chip-row {
@@ -143,25 +164,26 @@ function 套装列表(分类) {
   margin-top: 8px;
 }
 .chip {
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-base);
   background: #fff;
-  color: var(--text);
-  border-radius: 8px;
+  color: var(--color-text-regular);
+  border-radius: var(--radius-lg);
   padding: 7px 14px;
-  font-size: 14px;
+  font-size: var(--font-size-lg);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.2s;
 }
 .chip.small {
   padding: 5px 11px;
-  font-size: 13px;
+  font-size: var(--font-size-md);
 }
 .chip:hover:not(:disabled) {
-  border-color: var(--accent);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 .chip.active {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
   color: #fff;
 }
 .chip:disabled {
@@ -176,11 +198,12 @@ function 套装列表(分类) {
   min-height: 26px;
 }
 .picked-tag {
-  background: var(--accent-soft);
-  color: #8a6a34;
-  border-radius: 6px;
+  background: #ecf5ff;
+  color: #409eff;
+  border: 1px solid #d9ecff;
+  border-radius: var(--radius-md);
   padding: 3px 9px;
-  font-size: 13px;
+  font-size: var(--font-size-md);
   cursor: pointer;
 }
 .picked-tag i {
@@ -189,26 +212,26 @@ function 套装列表(分类) {
   margin-left: 2px;
 }
 .hint {
-  font-size: 12px;
-  color: var(--text-soft);
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
 }
 .search {
   width: 100%;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border: 1px solid var(--color-border-base);
+  border-radius: var(--radius-lg);
   padding: 7px 10px;
-  font-size: 13px;
+  font-size: var(--font-size-md);
   margin-bottom: 8px;
   outline: none;
 }
 .search:focus {
-  border-color: var(--accent);
+  border-color: var(--color-primary);
 }
 .xinfa-pool {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  max-height: 200px;
+  max-height: 210px;
   overflow-y: auto;
 }
 .set-field {
@@ -219,8 +242,8 @@ function 套装列表(分类) {
 }
 .set-label {
   flex: 0 0 40px;
-  font-size: 13px;
-  color: var(--text-soft);
+  font-size: var(--font-size-md);
+  color: var(--color-text-regular);
 }
 .set-field :deep(.el-select) {
   flex: 1;

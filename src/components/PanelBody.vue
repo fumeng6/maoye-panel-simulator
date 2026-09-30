@@ -1,55 +1,49 @@
 <template>
   <div class="panel-body">
     <template v-if="面板">
-      <section class="group">
-        <div class="group-title">基础属性</div>
-        <div v-for="item in 攻击列表" :key="item.名称" class="row">
-          <span class="name">{{ item.名称 }}</span>
-          <span class="value">{{ item.文本 }}</span>
-        </div>
-        <div v-for="item in 五维列表" :key="item.名称" class="row">
-          <span class="name">{{ item.名称 }}</span>
-          <span class="value">{{ item.文本 }}</span>
-        </div>
-      </section>
+      <div class="section-title">基础属性</div>
+      <div v-for="item in 攻击列表" :key="item.名称" class="stat-row">
+        <span class="stat-name">{{ item.名称 }}</span>
+        <span class="stat-value">{{ item.文本 }}</span>
+      </div>
+      <div v-for="item in 五维列表" :key="item.名称" class="stat-row">
+        <span class="stat-name">{{ item.名称 }}</span>
+        <span class="stat-value">{{ item.文本 }}</span>
+      </div>
 
-      <section class="group">
-        <div class="group-title">判定属性</div>
-        <div v-for="item in 判定列表" :key="item.名称" class="row">
-          <span class="name">{{ item.名称 }}</span>
-          <span class="value">
-            {{ item.原始 }}
-            <span class="eff">({{ item.有效 }})</span>
-          </span>
-        </div>
-      </section>
+      <div class="section-title">判定属性</div>
+      <div v-for="item in 判定列表" :key="item.名称" class="stat-row judgment">
+        <span class="stat-name">{{ item.名称 }}</span>
+        <span class="stat-value">
+          {{ item.原始 }}
+          <span class="effective-value">({{ item.有效 }})</span>
+        </span>
+      </div>
+      <div v-for="item in 直接率列表" :key="item.名称" class="stat-row direct-rate">
+        <span class="stat-name">{{ item.名称 }}</span>
+        <span class="stat-value">{{ item.文本 }}</span>
+      </div>
 
-      <section class="group">
-        <div class="group-title">穿透属性</div>
-        <div v-for="item in 穿透列表" :key="item.名称" class="row">
-          <span class="name">{{ item.名称 }}</span>
-          <span class="value">{{ item.文本 }}</span>
-        </div>
-      </section>
+      <div class="section-title">穿透属性</div>
+      <div v-for="item in 穿透列表" :key="item.名称" class="stat-row">
+        <span class="stat-name">{{ item.名称 }}</span>
+        <span class="stat-value">{{ item.文本 }}</span>
+      </div>
 
-      <section class="group">
-        <div class="group-title">增伤属性</div>
-        <div v-for="item in 增伤列表" :key="item.名称" class="row">
-          <span class="name">{{ item.名称 }}</span>
-          <span class="value">
-            {{ item.原始 }}
-            <span v-if="item.有效" class="eff">({{ item.有效 }})</span>
-          </span>
-        </div>
-      </section>
+      <div class="section-title">增伤属性</div>
+      <div v-for="item in 增伤列表" :key="item.名称" class="stat-row judgment">
+        <span class="stat-name">{{ item.名称 }}</span>
+        <span class="stat-value">
+          {{ item.原始 }}
+          <span v-if="item.有效" class="effective-value">({{ item.有效 }})</span>
+        </span>
+      </div>
 
-      <section class="group">
-        <div class="group-title">生存属性</div>
-        <div v-for="item in 生存列表" :key="item.名称" class="row">
-          <span class="name">{{ item.名称 }}</span>
-          <span class="value">{{ item.文本 }}</span>
-        </div>
-      </section>
+      <div class="section-title">生存属性</div>
+      <div v-for="item in 生存列表" :key="item.名称" class="stat-row">
+        <span class="stat-name">{{ item.名称 }}</span>
+        <span class="stat-value">{{ item.文本 }}</span>
+      </div>
     </template>
 
     <div v-else class="empty-hint">请先选择流派</div>
@@ -102,6 +96,13 @@ const 判定列表 = computed(() => {
   }))
 })
 
+const 直接率列表 = computed(() =>
+  [
+    { 名称: '直接会心率', key: '直接会心率' },
+    { 名称: '直接会意率', key: '直接会意率' }
+  ].map((i) => ({ 名称: i.名称, 文本: 格式化百分比(取(i.key)) }))
+)
+
 const 穿透列表 = computed(() => {
   const 列表 = [{ 名称: '外功穿透', key: '外功穿透' }]
   const 元素 = 面板.value?.本系属性
@@ -148,31 +149,52 @@ const 生存列表 = computed(() =>
 </script>
 
 <style scoped>
-.group {
-  margin-bottom: 14px;
+.panel-body {
+  padding-bottom: 4px;
 }
-.group-title {
-  font-size: 12px;
-  color: var(--text-soft);
-  letter-spacing: 1px;
-  margin-bottom: 4px;
+.section-title {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.5px;
+  padding: 12px 0 6px;
 }
-.row {
+.section-title:first-child {
+  padding-top: 0;
+}
+.stat-row {
   display: flex;
   justify-content: space-between;
-  padding: 3px 0;
-  font-size: 13px;
-  border-bottom: 1px dashed var(--border-soft);
+  align-items: center;
+  padding: 6px 8px;
+  margin-bottom: 2px;
+  border-radius: var(--radius-sm);
+  transition: background-color 0.2s;
 }
-.name {
-  color: var(--text-soft);
+.stat-row:hover {
+  background-color: var(--color-bg-secondary);
 }
-.value {
-  font-variant-numeric: tabular-nums;
+.stat-name {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-regular);
+}
+.stat-value {
+  font-size: var(--font-size-lg);
   font-weight: 500;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
 }
-.eff {
-  color: var(--accent);
-  font-size: 12px;
+.stat-row.judgment .effective-value {
+  color: var(--color-tag-amber-text);
+  font-weight: 600;
+}
+.stat-row.direct-rate .stat-value {
+  color: var(--color-success);
+}
+.empty-hint {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-lg);
+  margin-top: 60px;
+  text-align: center;
 }
 </style>

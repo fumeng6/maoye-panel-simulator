@@ -99,7 +99,7 @@ function 范围文本(名称) {
 .picker-mask {
   position: fixed;
   inset: 0;
-  background: rgba(30, 26, 20, 0.35);
+  background: rgba(0, 0, 0, 0.45);
   z-index: 2000;
   display: flex;
   align-items: center;
@@ -113,7 +113,7 @@ function 范围文本(名称) {
   width: 420px;
   max-width: 92vw;
   max-height: 70vh;
-  border-radius: 14px;
+  border-radius: var(--radius-2xl);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -141,24 +141,25 @@ function 范围文本(名称) {
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px 10px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--color-border-light);
 }
 .title {
   display: flex;
   flex-direction: column;
   gap: 2px;
   font-weight: 600;
+  color: var(--color-text-primary);
 }
 .title .cur {
-  font-size: 12px;
-  color: var(--accent);
+  font-size: var(--font-size-base);
+  color: var(--color-primary);
   font-weight: 400;
 }
 .close {
   border: none;
   background: none;
   font-size: 18px;
-  color: var(--text-soft);
+  color: var(--color-text-secondary);
   cursor: pointer;
   padding: 4px 8px;
 }
@@ -169,22 +170,22 @@ function 范围文本(名称) {
 }
 .search {
   flex: 1;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border: 1px solid var(--color-border-base);
+  border-radius: var(--radius-lg);
   padding: 7px 10px;
-  font-size: 13px;
+  font-size: var(--font-size-md);
   outline: none;
 }
 .search:focus {
-  border-color: var(--accent);
+  border-color: var(--color-primary);
 }
 .clear {
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-base);
   background: #fff;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: 0 12px;
-  font-size: 13px;
-  color: var(--text-soft);
+  font-size: var(--font-size-md);
+  color: var(--color-text-regular);
   cursor: pointer;
 }
 .picker-list {
@@ -200,17 +201,18 @@ function 范围文本(名称) {
   border: none;
   background: none;
   padding: 11px 10px;
-  border-radius: 8px;
-  font-size: 14px;
-  color: var(--text);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-lg);
+  color: var(--color-text-primary);
   cursor: pointer;
   text-align: left;
+  transition: background-color 0.15s;
 }
 .opt:hover:not(:disabled) {
-  background: var(--accent-soft);
+  background: #ecf5ff;
 }
 .opt.active {
-  background: var(--accent);
+  background: var(--color-primary);
   color: #fff;
 }
 .opt.active .opt-range {
@@ -224,18 +226,18 @@ function 范围文本(名称) {
   flex: 1;
 }
 .opt-range {
-  font-size: 12px;
-  color: var(--text-soft);
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
   font-variant-numeric: tabular-nums;
 }
 .opt-flag {
-  font-size: 11px;
-  color: #c0392b;
+  font-size: var(--font-size-sm);
+  color: var(--color-danger);
 }
 .empty {
   text-align: center;
-  color: var(--text-soft);
-  font-size: 13px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-md);
   padding: 30px 0;
 }
 </style>
