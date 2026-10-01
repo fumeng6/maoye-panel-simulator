@@ -1,323 +1,93 @@
 <template>
   <div class="attribute-panel-root">
-    <div class="panel-header">
-      <h3>战斗属性面板</h3>
-      <el-tag
-        v-if="mainElement"
-        :type="getElementTagType(mainElement) || undefined"
-        :style="getElementTagStyle(mainElement)"
-      >
-        {{ mainElement }}
-      </el-tag>
-    </div>
-
-    <el-scrollbar class="panel-content">
-      <div v-if="!面板" class="empty-panel">
-        <el-empty description="请先选择流派" :image-size="60" />
+    <div class="panel-heading"><h2>战斗属性</h2><div class="view-toggle" aria-label="面板显示形式"><button :class="{ active: view === 'chart' }" :aria-pressed="view === 'chart'" @click="view = 'chart'">图表</button><button :class="{ active: view === 'table' }" :aria-pressed="view === 'table'" @click="view = 'table'">表格</button></div></div>
+    <div v-if="!store.已选流派" class="empty-panel"><h3>选择流派，开始配装</h3><button class="primary-action" @click="emit('choose-school')">选择流派</button></div>
+    <template v-else>
+      <div v-if="view === 'chart'" class="chart-view">
+        <section class="attack-chart"><div class="section-caption"><h3>攻击</h3><div v-if="data.attacks.length > 2" class="pager"><button aria-label="上一组攻击" :disabled="attackPage === 0" @click="attackPage--">‹</button><span>{{ attackPage + 1 }}/{{ Math.ceil(data.attacks.length / 2) }}</span><button aria-label="下一组攻击" :disabled="(attackPage + 1) * 2 >= data.attacks.length" @click="attackPage++">›</button></div></div>
+          <div class="attack-items"><div v-for="item in shownAttacks" :key="item.key" class="attack-item"><div class="metric-line"><span>{{ item.key }}攻击</span><strong class="attack-numbers" :class="{ absorbed: item.absorbedMin || item.absorbedMax, inverted: item.min > item.max }" :title="item.absorbedMin || item.absorbedMax ? '括号为已计入总值的无相攻击贡献' : undefined"><span><small v-if="item.min > item.max">最小</small>{{ 整数(item.min) }}<b v-if="item.absorbedMin">（+{{ 整数(item.absorbedMin) }}）</b></span><i>{{ item.min > item.max ? "/" : "～" }}</i><span><small v-if="item.min > item.max">最大</small>{{ 整数(item.max) }}<b v-if="item.absorbedMax">（+{{ 整数(item.absorbedMax) }}）</b></span></strong></div><div v-if="item.min > item.max" class="inverted-tracks" aria-label="攻击下限高于上限，分别展示最小和最大攻击"><div><i :style="{ width: item.min / attackScale * 100 + '%' }"></i></div><div><i :style="{ width: item.max / attackScale * 100 + '%' }"></i></div></div><div v-else class="range-track"><div class="range-bar" :style="{ left: Math.min(item.min, item.max) / attackScale * 100 + '%', width: Math.max(.5, Math.abs(item.max - item.min) / attackScale * 100) + '%' }"></div></div></div>
+        </div></section>
+        <section class="rates-chart"><div class="section-caption"><h3>判定属性</h3></div><div class="rate-rings"><div v-for="item in data.rates" :key="item.key" class="rate-ring" :title="`${item.key}上限 ${item.max}%`"><svg viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="33" fill="none" stroke="var(--track)" stroke-width="6"/><circle cx="40" cy="40" r="33" fill="none" :stroke="item.color" stroke-width="6" stroke-linecap="round" pathLength="100" :stroke-dasharray="`${item.ratio} 100`" transform="rotate(-90 40 40)"/></svg><strong class="effective">{{ 百分比(item.effective) }}</strong><span>白字{{ item.key }}</span><small>{{ 百分比(item.value) }}<em v-if="item.overflow" class="rate-overflow"> · 溢出 {{ 百分比(item.overflow) }}</em></small></div></div><div v-if="data.direct.length" class="direct-rates"><span v-for="item in data.direct" :key="item.key">{{ item.key }} <strong class="effective">{{ 百分比(item.value) }}</strong></span></div></section>
+        <section class="modifiers-chart"><div class="section-caption"><h3>增伤与穿透</h3><div v-if="data.modifiers.length > modifierPageSize" class="pager"><button aria-label="上一组增伤与穿透" :disabled="modifierPage === 0" @click="modifierPage--">‹</button><span>{{ modifierPage + 1 }}/{{ Math.ceil(data.modifiers.length / modifierPageSize) }}</span><button aria-label="下一组增伤与穿透" :disabled="(modifierPage + 1) * modifierPageSize >= data.modifiers.length" @click="modifierPage++">›</button></div></div>
+          <div class="modifier-grid"><div v-for="item in shownModifiers" :key="item.key" class="modifier" :title="item.max ? `可配置上限 ${item.percent ? 百分比(item.max) : 小数(item.max)}` : item.key"><span v-if="item.schoolName" class="modifier-school">{{ item.schoolName }}</span><div class="metric-line"><span>{{ item.moveName }}</span><div class="modifier-number"><strong>{{ 显示增益(item) }}</strong><strong v-if="item.effective !== undefined" class="effective">（{{ 显示增益(item, true) }}）</strong></div></div><div v-if="item.max" class="mini-track"><i :style="{ width: item.ratio + '%' }"></i></div></div></div>
+        </section>
       </div>
-
-      <div v-else class="stats-list">
-        <div class="section-title">基础属性</div>
-
-        <template v-for="item in baseAttackStats" :key="item.id">
-          <div v-if="hasAttackValue(item)" class="stat-row">
-            <span class="stat-name">{{ item.name }}</span>
-            <span class="stat-value">{{ formatAttackRangeValue(item) }}</span>
-          </div>
-        </template>
-
-        <template v-for="item in basicStats" :key="item.id">
-          <div v-if="hasValue(item.id)" class="stat-row">
-            <span class="stat-name">{{ item.name }}</span>
-            <span class="stat-value">{{ formatBasicStatValue(item.value) }}</span>
-          </div>
-        </template>
-
-        <div class="section-title" style="margin-top: 8px;">判定属性</div>
-
-        <div v-if="hasValue('精准率')" class="stat-row judgment">
-          <span class="stat-name">精准率</span>
-          <span class="stat-value">
-            {{ 原始精准 }}%
-            <span class="effective-value">({{ 有效精准 }}%)</span>
-          </span>
-        </div>
-        <div v-if="hasValue('会心率')" class="stat-row judgment">
-          <span class="stat-name">会心率</span>
-          <span class="stat-value">
-            {{ 原始会心 }}%
-            <span class="effective-value">({{ 有效会心 }}%)</span>
-          </span>
-        </div>
-        <div v-if="hasValue('会意率')" class="stat-row judgment">
-          <span class="stat-name">会意率</span>
-          <span class="stat-value">
-            {{ 原始会意 }}%
-            <span class="effective-value">({{ 有效会意 }}%)</span>
-          </span>
-        </div>
-
-        <div v-if="hasValue('直接会心率')" class="stat-row direct-rate">
-          <span class="stat-name">直接会心率</span>
-          <span class="stat-value">{{ 原始直接会心 }}%</span>
-        </div>
-        <div v-if="hasValue('直接会意率')" class="stat-row direct-rate">
-          <span class="stat-name">直接会意率</span>
-          <span class="stat-value">{{ 原始直接会意 }}%</span>
-        </div>
-
-        <div class="section-title" style="margin-top: 8px;">穿透属性</div>
-
-        <template v-for="item in penetrationStats" :key="item.id">
-          <div v-if="hasValue(item.key)" class="stat-row" :class="{ judgment: item.有效 }">
-            <span class="stat-name">{{ item.name }}</span>
-            <span class="stat-value">
-              {{ formatPenetrationValue(item.value) }}
-              <span v-if="item.有效" class="effective-value">({{ item.有效 }})</span>
-            </span>
-          </div>
-        </template>
-
-        <div class="section-title" style="margin-top: 8px;">增伤属性</div>
-
-        <template v-for="item in enhancedDamageBonusStats" :key="item.id">
-          <div v-if="item.value" class="stat-row" :class="{ judgment: item.有效 }">
-            <span class="stat-name">{{ item.name }}</span>
-            <span class="stat-value">
-              {{ item.displayValue }}
-              <span v-if="item.有效" class="effective-value">({{ item.有效Value }})</span>
-            </span>
-          </div>
-        </template>
-      </div>
-    </el-scrollbar>
+      <div v-else class="table-view"><div ref="tableGrid" class="table-grid" :style="{ gridTemplateRows: `repeat(${Math.ceil(shownTable.length / 2)}, minmax(0,1fr))` }"><div v-for="item in shownTable" :key="item.key" class="table-stat"><span :title="item.key">{{ item.key }}</span><div><strong :class="{ effective: item.direct }">{{ item.text }}</strong><strong v-if="item.effective" class="effective">（{{ item.effective }}）</strong></div><small v-if="item.overflow" class="rate-overflow">白字溢出 {{ 百分比(item.overflow) }}</small></div></div><div v-if="tableRows.length > tablePageSize" class="table-pagination pager"><button aria-label="上一页属性" :disabled="tablePage === 0" @click="tablePage--">‹</button><span>{{ tablePage + 1 }} / {{ Math.ceil(tableRows.length / tablePageSize) }}</span><button aria-label="下一页属性" :disabled="(tablePage + 1) * tablePageSize >= tableRows.length" @click="tablePage++">›</button></div></div>
+      <div class="dimension-strip"><span v-for="key in ['劲','敏','势']" :key="key">{{ key }} <strong>{{ 整数(data.raw[key]) }}</strong></span></div>
+    </template>
   </div>
 </template>
-
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import { useSimulatorStore } from '../stores/simulator.js'
-import { 是增伤词条 } from '../data/affinities.js'
-
+import { 取面板展示, 整数, 小数, 百分比, 显示增益, 显示攻击 } from '../domain/panelDisplay.js'
+const emit = defineEmits(['choose-school'])
 const store = useSimulatorStore()
-const 面板 = computed(() => store.面板)
-const rawTotals = computed(() => 面板.value?.原始面板 || {})
-const 增益有效 = computed(() => 面板.value?.增益有效面板 || {})
-
-const allElements = ['裂石', '鸣金', '破竹', '牵丝']
-
-const mainElement = computed(() => {
-  const p = 面板.value
-  if (!p || !p.本系属性) return null
-  const ele = p.本系属性
-  return ele === '无相' ? null : ele
-})
-
-// 基础攻击属性列表（合并最小/最大显示）
-const baseAttackStats = computed(() => {
-  const stats = [
-    { id: 'wugongAttack', name: '外功攻击', minId: '最小外功攻击', maxId: '最大外功攻击' },
-    { id: 'lieshiAttack', name: '裂石攻击', minId: '最小裂石攻击', maxId: '最大裂石攻击' },
-    { id: 'mingjinAttack', name: '鸣金攻击', minId: '最小鸣金攻击', maxId: '最大鸣金攻击' },
-    { id: 'pozhuAttack', name: '破竹攻击', minId: '最小破竹攻击', maxId: '最大破竹攻击' },
-    { id: 'qiansiAttack', name: '牵丝攻击', minId: '最小牵丝攻击', maxId: '最大牵丝攻击' },
-    { id: 'wuxiangAttack', name: '无相攻击', minId: '最小无相攻击', maxId: '最大无相攻击' }
-  ]
-  return stats.map((s) => ({
-    ...s,
-    minValue: rawTotals.value[s.minId],
-    maxValue: rawTotals.value[s.maxId]
-  }))
-})
-
-const basicStats = computed(() => {
-  const stats = [
-    { id: 'jin', name: '劲' },
-    { id: 'min', name: '敏' },
-    { id: 'shi', name: '势' }
-  ]
-  return stats.map((s) => ({ ...s, value: rawTotals.value[s.id] }))
-})
-
-// 判定属性
-const 有效面板 = computed(() => 面板.value?.有效面板 || {})
-const 原始精准 = computed(() => (rawTotals.value['精准率'] || 0).toFixed(1))
-const 有效精准 = computed(() => ((有效面板.value['精准率'] || 0)).toFixed(1))
-const 原始会心 = computed(() => (rawTotals.value['会心率'] || 0).toFixed(1))
-const 有效会心 = computed(() => ((有效面板.value['会心率'] || 0)).toFixed(1))
-const 原始会意 = computed(() => (rawTotals.value['会意率'] || 0).toFixed(1))
-const 有效会意 = computed(() => ((有效面板.value['会意率'] || 0)).toFixed(1))
-const 原始直接会心 = computed(() => (rawTotals.value['直接会心率'] || 0).toFixed(1))
-const 原始直接会意 = computed(() => (rawTotals.value['直接会意率'] || 0).toFixed(1))
-
-// 穿透属性
-const penetrationStats = computed(() => {
-  const 元素 = 面板.value?.本系属性
-  const schoolPenetration = 元素 ? { id: 'schoolPen', key: `${元素}穿透`, name: `${元素}穿透` } : null
-  const stats = [
-    { id: 'wugongPenetration', key: '外功穿透', name: '外功穿透' },
-    ...(schoolPenetration ? [schoolPenetration] : []),
-    { id: 'wuxiangPenetration', key: '无相穿透', name: '无相穿透' }
-  ]
-  const extra = [
-    { id: 'lieshiPenetration', key: '裂石穿透', name: '裂石穿透' },
-    { id: 'mingjinPenetration', key: '鸣金穿透', name: '鸣金穿透' },
-    { id: 'pozhuPenetration', key: '破竹穿透', name: '破竹穿透' },
-    { id: 'qiansiPenetration', key: '牵丝穿透', name: '牵丝穿透' }
-  ].filter((item) => item.key !== schoolPenetration?.key && (Number(rawTotals.value[item.key]) || 0) !== 0)
-
-  return [...stats, ...extra].map((s) => {
-    const 有效数值 = 增益有效.value[s.key]
-    return {
-      ...s,
-      value: rawTotals.value[s.key],
-      有效: 有效数值 !== undefined ? 有效数值.toFixed(1) : ''
-    }
-  })
-})
-
-// 增伤属性：仅展示来自装备的增伤/增效类词条
-const enhancedDamageBonusStats = computed(() => {
-  const 名称集 = new Set()
-  for (const 装备 of Object.values(store.装备词条)) {
-    for (const 词条 of Object.values(装备 || {})) {
-      if (!词条?.名称 || !词条.值) continue
-      if (!是增伤词条(词条.名称)) continue
-      名称集.add(词条.名称)
-    }
+const view = ref('chart')
+const data = computed(() => 取面板展示(store.$state))
+const attackPage = ref(0)
+const modifierPage = ref(0)
+const tablePage = ref(0)
+const tableGrid = ref(null)
+const modifierPageSize = 6
+const tablePageSize = ref(16)
+const resize = new ResizeObserver(entries => {
+  for (const { target, contentRect } of entries) {
+    if (!contentRect.height) continue
+    if (target === tableGrid.value) tablePageSize.value = Math.max(1, Math.floor((contentRect.height + 6) / 50)) * 2
   }
-  return [...名称集].map((名称) => {
-    const 原始 = rawTotals.value[名称] || 0
-    const 有效数值 = 增益有效.value[名称]
-    return {
-      id: `bonus_${名称}`,
-      name: 名称,
-      value: 原始,
-      displayValue: `${原始.toFixed(1)}%`,
-      有效: 有效数值 !== undefined,
-      有效Value: 有效数值 !== undefined ? `${有效数值.toFixed(1)}%` : ''
-    }
-  })
 })
-
-function hasValue(statId) {
-  const val = rawTotals.value[statId]
-  return val !== undefined && val !== null && val !== 0
-}
-
-function hasAttackValue(item) {
-  const minVal = Number(item.minValue) || 0
-  const maxVal = Number(item.maxValue) || 0
-  return minVal > 0 || maxVal > 0
-}
-
-function formatAttackRangeValue(item) {
-  const minVal = Number(item.minValue) || 0
-  const maxVal = Number(item.maxValue) || 0
-  return `${Math.floor(minVal)}～${Math.floor(maxVal)}`
-}
-
-function formatBasicStatValue(value) {
-  return String(Math.round(Number(value) || 0))
-}
-
-function formatPenetrationValue(value) {
-  return (Number(value) || 0).toFixed(1)
-}
-
-function getElementTagType(element) {
-  const typeMap = { 裂石: 'warning', 鸣金: '', 破竹: '', 牵丝: '' }
-  return typeMap[element] || ''
-}
-
-function getElementTagStyle(element) {
-  const styleMap = {
-    破竹: {
-      '--el-tag-bg-color': '#fcf6ff',
-      '--el-tag-border-color': '#e9d5ff',
-      '--el-tag-text-color': '#9333ea'
-    },
-    牵丝: {
-      '--el-tag-bg-color': '#f0fdf4',
-      '--el-tag-border-color': '#bbf7d0',
-      '--el-tag-text-color': '#22c55e'
-    },
-    鸣金: {
-      '--el-tag-bg-color': '#eff6ff',
-      '--el-tag-border-color': '#bfdbfe',
-      '--el-tag-text-color': '#3b82f6'
-    }
-  }
-  return styleMap[element] || {}
-}
+watch(tableGrid, (el, old) => { if (old) resize.unobserve(old); if (el) resize.observe(el) })
+onBeforeUnmount(() => resize.disconnect())
+const attackScale = computed(() => Math.max(1, ...data.value.attacks.flatMap(a => [a.min, a.max])))
+const shownAttacks = computed(() => data.value.attacks.slice(attackPage.value * 2, attackPage.value * 2 + 2))
+const shownModifiers = computed(() => data.value.modifiers.slice(modifierPage.value * modifierPageSize, (modifierPage.value + 1) * modifierPageSize))
+const tableRows = computed(() => [
+  ...data.value.attacks.map(a => ({ key: a.key + '攻击', text: 显示攻击(a) })),
+  ...data.value.rates.map(a => ({ key: '白字' + a.key, text: 百分比(a.value), effective: 百分比(a.effective), overflow: a.overflow })),
+  ...data.value.direct.map(a => ({ key: a.key, text: 百分比(a.value), direct: true })),
+  ...data.value.modifiers.map(a => ({ key: a.key, text: 显示增益(a), effective: a.effective !== undefined ? 显示增益(a, true) : '' }))
+])
+const shownTable = computed(() => tableRows.value.slice(tablePage.value * tablePageSize.value, (tablePage.value + 1) * tablePageSize.value))
+watch(() => [store.流派, store.变体, data.value.modifiers.length, modifierPageSize, tablePageSize.value], () => { attackPage.value = 0; modifierPage.value = 0; tablePage.value = 0 })
 </script>
-
 <style scoped>
-.attribute-panel-root {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 16px 12px 0;
-  border-bottom: 1px solid var(--color-border-light);
-}
-.panel-header h3 {
-  margin: 0;
-  font-size: var(--font-size-2xl);
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-.panel-content {
-  flex: 1;
-  overflow: hidden;
-  min-height: 0;
-}
-.empty-panel {
-  padding: 24px 0;
-}
-.stats-list {
-  padding: 0;
-}
-.section-title {
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 4px 0 8px;
-}
-.stat-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 0;
-  margin-bottom: 2px;
-  border-radius: var(--radius-sm);
-  transition: background-color 0.2s;
-}
-.stat-row:hover {
-  background-color: var(--color-bg-secondary);
-}
-.stat-name {
-  font-size: var(--font-size-lg);
-  color: var(--color-text-regular);
-}
-.stat-value {
-  font-size: var(--font-size-lg);
-  font-weight: 500;
-  color: var(--color-text-primary);
-  font-variant-numeric: tabular-nums;
-}
-.stat-row.judgment .effective-value {
-  color: var(--color-tag-amber-text);
-  font-weight: 600;
-}
-.stat-row.direct-rate .stat-value {
-  color: var(--color-success);
-}
+.attribute-panel-root { height:100%; min-height:0; display:flex; flex-direction:column; gap:14px }
+.panel-heading,.section-caption,.metric-line { display:flex; justify-content:space-between; align-items:center; gap:10px }
+.panel-heading { flex:none } h2 { margin:0; font-size:22px; color:var(--text-strong) } h3 { margin:0; font-size:15px; font-weight:600; color:var(--text) }
+.view-toggle { display:flex; gap:3px; padding:3px; background:var(--surface-soft); border-radius:8px }
+.view-toggle button { padding:6px 12px; border:0; border-radius:6px; background:transparent; color:var(--muted); font-size:13px; cursor:pointer }
+.view-toggle .active { background:var(--surface); color:var(--accent); box-shadow:0 1px 5px #00000012 }
+.chart-view { flex:1; min-height:0; display:flex; flex-direction:column; gap:18px }
+.section-caption { margin-bottom:10px } .attack-chart,.rates-chart { flex:none }
+.attack-items { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px }.attack-item { min-width:0; margin-bottom:8px }.attack-item .metric-line { flex-direction:column;align-items:flex-start;gap:8px }.attack-item strong { white-space:nowrap } .metric-line { font-size:14px; line-height:20px }
+.metric-line>span { min-width:0; color:var(--text) } .attack-item strong { font-size:22px; font-weight:700; color:var(--text-strong); font-variant-numeric:tabular-nums }
+.range-track { height:6px; background:var(--track); border-radius:3px; position:relative; margin-top:9px }
+.range-bar { height:100%; position:absolute; border-radius:3px; background:var(--accent) }
+.rate-rings { display:flex; justify-content:space-around; gap:8px }.rate-ring { position:relative; display:flex; align-items:center; flex-direction:column; flex:1; min-width:0 }
+.rate-ring svg { width:86px; height:86px }.rate-ring>strong { position:absolute; top:33px; font-size:18px; font-variant-numeric:tabular-nums }.rate-ring>span { font-size:14px; margin-top:5px }.rate-ring small { color:var(--muted); font-size:13px; margin-top:4px }
+.direct-rates { display:flex; justify-content:center; flex-wrap:wrap; gap:8px 20px; font-size:13px; margin-top:12px; color:var(--text) }.direct-rates strong { font-size:15px; margin-left:5px }
+.effective { color:var(--effective)!important; font-weight:750!important }
+.modifiers-chart { flex:1; min-height:0; display:flex; flex-direction:column }.modifier-grid { flex:1; min-height:0; display:grid; grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr)); gap:8px 16px }.modifier { display:flex; flex-direction:column; justify-content:center; min-width:0; min-height:0 }
+.modifier .metric-line { display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 6px }.modifier .metric-line>span { font-size:13px }.modifier-number { margin-left:auto; display:flex; gap:2px; white-space:nowrap; font-size:15px; font-variant-numeric:tabular-nums }.modifier-number strong { font-weight:550; color:var(--text-strong) }
+.mini-track { height:3px; background:var(--track); border-radius:2px; margin-top:4px; flex:none }.mini-track i { height:100%; display:block; border-radius:2px; background:var(--accent) }
+.dimension-strip { display:flex; justify-content:space-around; border-top:1px solid var(--border); padding-top:12px; font-size:14px; color:var(--muted); flex:none }.dimension-strip strong { color:var(--text-strong); font-size:16px; margin-left:8px }
+.pager { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted) }.pager button { width:28px; height:28px; border:1px solid var(--border); background:var(--surface-soft); border-radius:5px; color:var(--accent); font-size:18px; cursor:pointer }.pager button:disabled { opacity:.3; cursor:default }
+.table-view { flex:1; min-height:0; display:flex; flex-direction:column }.table-grid { min-height:0; flex:1; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px 18px }.table-stat { min-height:0; min-width:0; display:flex; flex-direction:column; justify-content:center; gap:6px; border-bottom:1px solid var(--border) }.table-stat>span { font-size:13px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis }.table-stat>div { font-size:15px; white-space:nowrap; font-variant-numeric:tabular-nums }.table-stat strong { font-weight:550; color:var(--text-strong) }.table-pagination { justify-content:center; margin-top:8px; flex:none }
+.empty-panel { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px }.primary-action { padding:12px 24px; background:var(--accent); color:#fff; border:0; border-radius:8px; cursor:pointer }
+@media(max-height:780px){.attribute-panel-root{gap:10px}.chart-view{gap:12px}.section-caption{margin-bottom:7px}.rate-ring svg{width:68px;height:68px}.rate-ring>strong{top:25px;font-size:16px}.rate-ring>span{margin-top:3px}.direct-rates{margin-top:7px}.attack-item{margin-bottom:8px}.range-track{margin-top:6px}.dimension-strip{padding-top:8px}}
+@media(max-width:1023px){h2{font-size:20px}.view-toggle button{min-height:30px}.pager button{min-width:30px}.metric-line{font-size:13px}.modifier-number{font-size:14px}.attack-item strong{font-size:21px}.attribute-panel-root{gap:10px}}
+@media(max-height:720px) and (max-width:1023px){.chart-view{gap:8px}.section-caption{margin-bottom:4px}.rate-ring svg{width:56px;height:56px}.rate-ring>strong{top:20px;font-size:13px}.rate-ring>span,.rate-ring small{font-size:12px;margin-top:2px}.direct-rates{font-size:12px;margin-top:5px}.direct-rates strong{font-size:13px}.attack-item{margin-bottom:6px}.attack-item strong{font-size:19px}.range-track{height:4px;margin-top:4px}.dimension-strip{font-size:12px;padding-top:6px}.dimension-strip strong{font-size:14px}.table-grid{gap:5px 10px}.table-stat>div{font-size:13px}}
+@media(max-height:720px) and (max-width:1023px){.rates-chart>.section-caption{display:none}.chart-view{gap:6px}.attribute-panel-root{gap:6px}.attack-chart .pager button{height:22px;min-height:22px}.attack-chart .section-caption{margin-bottom:2px}}
+.attack-numbers{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 4px;max-width:100%}.attack-numbers>span{white-space:nowrap}.attack-numbers b{font-size:.7em;font-weight:700;color:var(--success)}.attack-numbers i{font-style:normal;font-size:.7em;color:var(--muted)}.attack-numbers.absorbed{font-size:18px}.rate-ring .rate-overflow,.rate-overflow{font-size:11px;color:#c27335}.rate-overflow.hidden{visibility:hidden}
+@media(max-width:1023px){.attack-numbers.absorbed{font-size:16px}.modifier .metric-line{gap:0}.modifier .metric-line>span{font-size:12px;line-height:15px}.modifier-number{font-size:13px;line-height:17px}.modifier-grid{gap:4px 12px}.rate-ring>span{font-size:12px}}
+@media(max-height:720px) and (max-width:1023px){.attack-item .metric-line{gap:3px}.attack-numbers.absorbed{font-size:15px}.rate-ring .rate-overflow{font-size:10px;line-height:12px;margin-top:0}.rate-ring svg{width:50px;height:50px}.rate-ring>strong{top:17px}.chart-view{gap:4px}.attribute-panel-root{gap:4px}.modifier-grid{gap:3px 10px}.modifier-number{font-size:12px;line-height:15px}.modifier .metric-line>span{font-size:11px;line-height:13px}.mini-track{margin-top:3px}.section-caption{margin-bottom:2px}.dimension-strip{padding-top:4px}}
+.rate-overflow{font-style:normal}
+@media(max-height:720px) and (max-width:1023px){.attack-numbers.absorbed{font-size:14px;gap:0 2px}.attack-numbers b{font-size:.65em}.modifier-grid{grid-template-rows:repeat(3,minmax(34px,1fr))}.rate-ring .rate-overflow{font-size:9px;white-space:nowrap}}
+.modifier-school{font-size:12px;line-height:17px;color:var(--muted)}.modifier .metric-line>span{white-space:nowrap}.modifier-number{letter-spacing:-.3px}
+.attack-numbers small{font-size:11px;font-weight:500;color:var(--muted);margin-right:4px}.attack-numbers.inverted{font-size:19px}.attack-numbers.inverted>span:first-child{color:var(--accent)}.attack-numbers.inverted>span:last-child{color:var(--effective)}
+.inverted-tracks{display:grid;gap:3px;margin-top:9px}.inverted-tracks>div{height:3px;border-radius:3px;background:var(--track)}.inverted-tracks i{display:block;height:100%;border-radius:3px;background:var(--accent)}.inverted-tracks>div:last-child i{background:var(--effective)}
+@media(min-width:1024px) and (max-width:1350px){.modifier .metric-line>span{font-size:11px}.modifier-number{font-size:13px}}
+@media(max-width:1023px){.modifier-school{font-size:11px;line-height:14px}.modifier .metric-line>span{font-size:10px}.modifier-number{font-size:12px}.attack-numbers.inverted{font-size:17px}.attack-numbers small{font-size:10px;margin-right:2px}}
+@media(max-height:720px) and (max-width:1023px){.inverted-tracks{margin-top:4px;gap:2px}.inverted-tracks>div{height:2px}.modifier-school{font-size:10px;line-height:12px}.modifier-number{font-size:11px}}
 </style>

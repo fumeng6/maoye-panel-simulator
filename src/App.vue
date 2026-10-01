@@ -1,202 +1,52 @@
 <template>
   <div class="app-container">
-    <header class="app-header">
-      <div class="header-content">
-        <div class="logo">
-          <h1 class="title">燕云面板模拟器</h1>
-          <span class="version">v0.1.0</span>
-        </div>
-        <div class="header-actions">
-          <el-tag v-if="本系属性" :type="getElementTagType(本系属性)" :style="getElementTagStyle(本系属性)">
-            {{ 本系属性 }}
-          </el-tag>
-        </div>
-      </div>
-    </header>
-
-    <main class="main-grid">
-      <div class="module-card attribute-panel"><AttributePanel /></div>
-      <div class="module-card school-selector"><SchoolSelector /></div>
-      <div class="module-card equipment-manager"><EquipmentManager /></div>
-    </main>
-
-    <nav v-if="isMobile" class="mobile-tab-bar">
-      <div
-        v-for="t in tabs"
-        :key="t.key"
-        class="tab-item"
-        :class="{ active: 当前页 === t.key }"
-        @click="当前页 = t.key"
-      >
-        <span class="tab-label">{{ t.label }}</span>
-      </div>
-    </nav>
+    <header class="app-header"><div class="logo"><h1>燕云面板模拟器</h1><span>{{ 数据.元数据.数据版本 }}</span></div><div class="header-actions"><el-button aria-label="切换夜间模式" :aria-pressed="dark" @click="dark=!dark"><el-icon><component :is="dark ? Sunny : Moon" /></el-icon></el-button><el-button @click="plansOpen=true">方案管理</el-button><el-button :disabled="!store.已选流派" @click="shareOpen=true">分享图</el-button></div></header>
+    <section class="config-strip" aria-label="配装选择">
+      <button class="school-trigger" @click="schoolOpen=true"><small>武学流派</small><strong>{{ store.已选流派 ? store.流派+store.变体 : '选择流派' }}</strong><span>⌄</span></button>
+      <div class="heart-config"><button class="heart-trigger" :disabled="!store.已选流派" @click="heartOpen=true">心法 <span>⌄</span></button><div class="heart-results"><button v-for="book in store.心法列表" :key="book" :class="qualityClass(book)" @click="heartOpen=true">{{ book }}</button><span v-if="!store.心法列表.length" class="placeholder">未选择</span></div></div>
+      <label class="set-config"><small>弓玦套装</small><el-select v-model="store.套装选择.弓决" :disabled="!store.已选流派" clearable placeholder="未选择" aria-label="弓玦套装"><el-option v-for="s in 取套装列表('弓决')" :key="s.键" :label="s.名称" :value="s.键" /></el-select></label>
+      <label class="set-config"><small>武器套装</small><el-select v-model="store.套装选择.武器" :disabled="!store.已选流派" clearable placeholder="未选择" aria-label="武器套装"><el-option v-for="s in 取套装列表('武器')" :key="s.键" :label="s.名称" :value="s.键" /></el-select></label>
+    </section>
+    <main class="main-grid"><section v-show="!isMobile || currentPage==='panel'" class="module-card"><AttributePanel @choose-school="schoolOpen=true" /></section><section v-show="!isMobile || currentPage!=='panel'" class="module-card"><EquipmentManager :group="isMobile ? (currentPage==='armor' ? 'armor' : 'weapons') : 'all'" /></section></main>
+    <SchoolSelector v-model:school-open="schoolOpen" v-model:heart-open="heartOpen" /><PlanManager v-model="plansOpen" /><ShareDialog v-model="shareOpen" />
+    <nav v-if="isMobile" class="mobile-tab-bar" aria-label="功能切换"><button v-for="tab in tabs" :key="tab.key" :class="{active:currentPage===tab.key}" :aria-current="currentPage===tab.key ? 'page' : undefined" @click="currentPage=tab.key"><el-icon><component :is="tab.icon" /></el-icon><span>{{ tab.label }}</span></button></nav>
+    <div v-if="saveError" class="save-error" role="alert">{{ saveError }}</div>
   </div>
 </template>
-
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, watch } from 'vue'
+import { DataAnalysis, SetUp, Grid, Moon, Sunny } from '@element-plus/icons-vue'
 import { useSimulatorStore } from './stores/simulator.js'
+import { usePlansStore } from './stores/plans.js'
 import { useMediaQuery } from './composables/useMediaQuery.js'
+import { 心法记录 } from './data/xinfa.js'
+import { 取套装列表 } from './data/sets.js'
+import 数据 from './data/game/规则.json'
 import AttributePanel from './components/AttributePanel.vue'
 import SchoolSelector from './components/SchoolSelector.vue'
 import EquipmentManager from './components/EquipmentManager.vue'
-
-const store = useSimulatorStore()
-const isMobile = useMediaQuery('(max-width: 1023px)')
-
-const tabs = [
-  { key: 'panel', label: '面板' },
-  { key: 'loadout', label: '配置' },
-  { key: 'equip', label: '装备' }
-]
-const 当前页 = ref('panel')
-
-const 本系属性 = computed(() => store.面板?.本系属性 || null)
-
-function getElementTagType(element) {
-  const typeMap = { 裂石: 'warning', 鸣金: '', 破竹: '', 牵丝: '' }
-  return typeMap[element] || ''
-}
-function getElementTagStyle(element) {
-  const styleMap = {
-    破竹: {
-      '--el-tag-bg-color': '#fcf6ff',
-      '--el-tag-border-color': '#e9d5ff',
-      '--el-tag-text-color': '#9333ea'
-    },
-    牵丝: {
-      '--el-tag-bg-color': '#f0fdf4',
-      '--el-tag-border-color': '#bbf7d0',
-      '--el-tag-text-color': '#22c55e'
-    },
-    鸣金: {
-      '--el-tag-bg-color': '#eff6ff',
-      '--el-tag-border-color': '#bfdbfe',
-      '--el-tag-text-color': '#3b82f6'
-    }
-  }
-  return styleMap[element] || {}
-}
+import PlanManager from './components/PlanManager.vue'
+import ShareDialog from './components/ShareDialog.vue'
+const store=useSimulatorStore(), plans=usePlansStore()
+const isMobile=useMediaQuery('(max-width:1023px)'), currentPage=ref('panel'), schoolOpen=ref(false), heartOpen=ref(false), plansOpen=ref(false), shareOpen=ref(false), saveError=ref('')
+const tabs=[{key:'panel',label:'战斗面板',icon:DataAnalysis},{key:'weapons',label:'武器四件',icon:SetUp},{key:'armor',label:'防具四件',icon:Grid}]
+function qualityClass(name){return 'quality-'+({金色:'gold',紫色:'purple',蓝色:'blue'}[心法记录[name]?.品质] || 'unknown')}
+const storageKey='maoye-panel-loadout-v1'
+const dark=ref(false)
+try{dark.value=localStorage.getItem('maoye-panel-theme')==='dark' || (!localStorage.getItem('maoye-panel-theme') && matchMedia('(prefers-color-scheme:dark)').matches)}catch{}
+watch(dark,value=>{document.documentElement.classList.toggle('dark',value);try{localStorage.setItem('maoye-panel-theme',value?'dark':'light')}catch{}},{immediate:true})
+plans.restore()
+try{const saved=localStorage.getItem(storageKey);if(plans.active)store.加载配置(plans.active.config);else if(saved)store.加载配置(JSON.parse(saved))}catch{saveError.value='保存的配装无法读取，可通过方案管理重新导入'}
+store.$subscribe(()=>{
+  if(!store.已选流派)return
+  try{const config=store.导出配置();localStorage.setItem(storageKey,JSON.stringify(config));plans.updateCurrent(config);saveError.value=''}catch{saveError.value='浏览器无法保存，请通过方案管理导出'}
+},{detached:true,flush:'post'})
 </script>
-
 <style scoped>
-.app-container {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: var(--color-bg-app);
-}
-.app-header {
-  background: var(--color-bg-header);
-  backdrop-filter: blur(10px);
-  box-shadow: var(--color-shadow-header);
-  padding: 0;
-  height: 56px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-.header-content {
-  max-width: 1600px;
-  height: 100%;
-  margin: 0 auto;
-  padding: 0 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.logo {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-.title {
-  font-size: var(--font-size-5xl, 20px);
-  font-weight: 600;
-  margin: 0;
-  line-height: 1;
-  background: linear-gradient(135deg, var(--color-brand-start) 0%, var(--color-brand-end) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-.version {
-  font-size: var(--font-size-base);
-  color: var(--color-text-secondary);
-}
-.main-grid {
-  flex: 1;
-  min-height: 0;
-  max-width: 2000px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 16px;
-  display: grid;
-  grid-template-columns: 1fr 2fr 4fr;
-  grid-template-rows: auto;
-  gap: 16px;
-  overflow: hidden;
-}
-.main-grid > .module-card {
-  min-height: 0;
-  padding: 20px;
-}
-/* 属性面板、装备卡撑满高度；流派心法卡按内容高度 */
-.main-grid > .attribute-panel,
-.main-grid > .equipment-manager {
-  align-self: stretch;
-}
-.main-grid > .school-selector {
-  align-self: start;
-}
-@media (max-width: 1023px) {
-  .main-grid {
-    grid-template-columns: 1fr;
-    display: flex;
-    flex-direction: column;
-    padding: 12px;
-    padding-bottom: 80px;
-    overflow: visible;
-  }
-  .main-grid > .module-card {
-    height: auto;
-  }
-}
-.mobile-tab-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 999;
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  background: var(--color-bg-tab-bar);
-  backdrop-filter: blur(20px);
-  box-shadow: var(--color-shadow-tab-bar);
-  border-top: 1px solid var(--color-border-tab-bar);
-  padding: 8px 0;
-  padding-bottom: calc(8px + env(safe-area-inset-bottom));
-}
-.tab-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-width: 72px;
-  padding: 8px 14px;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  user-select: none;
-  color: var(--color-text-secondary);
-}
-.tab-item.active {
-  color: var(--color-brand-start);
-  background: rgba(102, 126, 234, 0.1);
-}
-.tab-label {
-  font-size: var(--font-size-md);
-}
+.app-container{height:100dvh;display:flex;flex-direction:column;background:var(--app-bg);overflow:hidden}.app-header{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;gap:14px;background:var(--surface);border-bottom:1px solid var(--border);flex:none}.logo{display:flex;align-items:baseline;gap:12px;min-width:0}.logo h1{font-size:19px;color:var(--text-strong);margin:0;white-space:nowrap}.logo>span{font-size:11px;color:var(--muted)}.header-actions{display:flex;gap:8px;flex:none}.header-actions .el-button{margin:0}.config-strip{margin:12px 20px 0;display:grid;grid-template-columns:140px minmax(0,1fr) 160px 160px;align-items:center;gap:20px;padding:12px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);flex:none}.school-trigger{border:0;background:transparent;position:relative;text-align:left;color:var(--text-strong);padding:0 24px 0 0;cursor:pointer}.school-trigger small,.set-config>small{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}.school-trigger strong{font-size:19px}.school-trigger>span{position:absolute;right:0;top:22px;color:var(--muted)}.heart-config{display:flex;gap:12px;align-items:center;min-width:0}.heart-trigger{border:1px solid var(--border);border-radius:7px;padding:8px 12px;white-space:nowrap;background:var(--surface-soft);color:var(--text);cursor:pointer;font-size:14px}.heart-trigger:disabled{opacity:.5;cursor:default}.heart-results{display:flex;flex-wrap:wrap;gap:6px;min-width:0}.heart-results button{font-size:13px;font-weight:650;background:var(--book-bg,var(--surface-soft));color:var(--book-color,var(--text));border:1px solid var(--book-border,var(--border));border-radius:6px;padding:6px 9px;cursor:pointer}.placeholder{font-size:13px;color:var(--muted)}.set-config{min-width:0}.set-config .el-select{width:100%}.main-grid{flex:1;min-height:0;display:grid;grid-template-columns:minmax(400px,1.25fr) minmax(0,1.75fr);grid-template-rows:minmax(0,1fr);gap:16px;padding:14px 20px 18px}.module-card{padding:18px;min-width:0;min-height:0;height:100%}.mobile-tab-bar{display:flex;background:var(--surface);border-top:1px solid var(--border);padding:4px 8px calc(4px + env(safe-area-inset-bottom));flex:none}.mobile-tab-bar button{flex:1;min-height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border:0;border-radius:8px;background:transparent;color:var(--muted);font-size:12px;cursor:pointer}.mobile-tab-bar .el-icon{font-size:18px}.mobile-tab-bar button.active{color:var(--accent);background:var(--surface-soft);font-weight:650}.save-error{position:fixed;bottom:60px;left:20px;background:var(--surface);border:1px solid var(--border);padding:10px;font-size:12px;color:var(--el-color-danger)}
+@media(min-width:1024px) and (max-width:1350px){.main-grid{grid-template-columns:400px minmax(0,1fr);gap:12px;padding:12px}.module-card{padding:14px}.config-strip{margin:10px 12px 0;gap:14px;grid-template-columns:120px minmax(0,1fr) 140px 140px}}
+@media(max-width:1023px){.app-header{padding:10px 12px}.logo h1{font-size:16px}.logo>span{display:none}.header-actions{gap:5px}.header-actions .el-button{padding:7px 9px;font-size:12px}.config-strip{margin:8px 10px 0;grid-template-columns:1fr 1fr;gap:10px 12px;padding:10px 12px}.school-trigger{grid-column:1}.heart-config{grid-column:2;grid-row:1;gap:6px;flex-direction:column;align-items:flex-start}.heart-trigger{border:0;background:transparent;padding:0;font-size:12px;color:var(--muted)}.heart-results{gap:4px}.heart-results button{font-size:11px;padding:3px 5px}.school-trigger strong{font-size:19px}.set-config{display:flex;align-items:center;gap:8px}.set-config>small{margin:0;white-space:nowrap;font-size:11px}.set-config .el-select{min-width:0;flex:1}.main-grid{display:flex;padding:10px}.module-card{width:100%;padding:14px}.main-grid>section{flex:1}}
+@media(max-width:1023px) and (max-height:720px){.app-header{padding:7px 10px}.config-strip{padding:8px 10px;gap:7px 10px}.main-grid{padding:8px 10px}.module-card{padding:12px}.mobile-tab-bar button{min-height:42px}.set-config .el-select{--el-component-size:30px}}
+.config-strip{grid-template-columns:minmax(140px,1fr) minmax(280px,2fr) minmax(140px,1fr) minmax(140px,1fr);gap:12px;padding:10px;background:linear-gradient(110deg,var(--surface),var(--surface-soft))}.school-trigger,.heart-config,.set-config{height:72px;padding:10px 14px;border:1px solid var(--border);border-radius:9px;background:var(--surface)}.school-trigger>span{right:12px;top:31px}.school-trigger small{margin-bottom:3px}.heart-config{flex-direction:column;align-items:stretch;gap:6px}.heart-trigger{padding:0;border:0;background:transparent;text-align:left;font-size:12px;color:var(--muted)}.heart-results{flex-wrap:nowrap}.heart-results button{flex:1;text-align:center;padding:7px 3px;font-size:12px;white-space:nowrap}.set-config>small{margin-bottom:5px}
+@media(max-width:1023px){.config-strip{grid-template-columns:1fr 1fr;gap:7px;padding:7px}.school-trigger,.heart-config{height:51px;padding:6px 8px}.school-trigger small{display:none}.school-trigger>span{top:12px;right:8px}.heart-config{flex-direction:row;align-items:center;gap:6px}.heart-results{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));flex:1;gap:3px}.heart-results button{font-size:10px;padding:3px 2px}.heart-trigger{white-space:nowrap;font-size:11px}.set-config{height:38px;padding:3px 6px;gap:5px}.set-config>small{font-size:10px;margin:0}.set-config .el-select{--el-component-size:30px}}
 </style>

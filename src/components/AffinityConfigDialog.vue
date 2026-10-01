@@ -1,444 +1,134 @@
 <template>
-  <el-dialog
-    :model-value="visible"
-    :title="`配置 ${slotName} 词条`"
-    :width="dialogWidth"
-    append-to-body
-    @update:model-value="handleDialogUpdate"
-    @close="handleClose"
-  >
-    <div class="affinity-config-content">
-      <div class="slots-list">
-        <!-- 宫槽 -->
-        <div class="slot-row">
-          <div class="slot-label">
-            <el-tag type="warning" size="small">宫</el-tag>
-            <span class="slot-hint">固定</span>
-          </div>
-          <el-select
-            v-model="localConfig.gong.attribute"
-            placeholder="选择词条"
-            size="default"
-            style="flex: 1"
-            :disabled="!hasSchool"
-            clearable
-            @change="handleAttributeChange('gong')"
-          >
-            <el-option
-              v-for="attr in getAvailableAttributes(词条槽.宫)"
-              :key="attr"
-              :label="attr"
-              :value="attr"
-            />
-          </el-select>
-          <PercentageInput
-            v-if="isPercentageSlot('gong')"
-            v-model="localConfig.gong.value"
-            :min="getMinValue('gong')"
-            :max="getMaxValue('gong')"
-            :disabled="!localConfig.gong.attribute"
-            style="margin-left: 8px"
-          />
-          <template v-else>
-            <el-input-number
-              v-model="localConfig.gong.value"
-              :min="getMinValue('gong')"
-              :max="getMaxValue('gong')"
-              :precision="getAttributePrecision('gong')"
-              :step="getAttributeStep('gong')"
-              size="default"
-              style="width: 140px; margin-left: 8px"
-              :disabled="!localConfig.gong.attribute"
-            />
-            <span class="value-unit">{{ getValueUnit('gong') }}</span>
-          </template>
-        </div>
-
-        <!-- 商/角/徵/羽槽 -->
-        <div v-for="s in 四槽" :key="s.key" class="slot-row">
-          <div class="slot-label">
-            <el-tag type="primary" size="small">{{ s.label }}</el-tag>
-          </div>
-          <el-select
-            v-model="localConfig[s.key].attribute"
-            placeholder="选择词条"
-            size="default"
-            style="flex: 1"
-            :disabled="!hasSchool"
-            clearable
-            @change="handleAttributeChange(s.key)"
-          >
-            <el-option
-              v-for="attr in getAvailableAttributes(s.槽位)"
-              :key="attr"
-              :label="attr"
-              :value="attr"
-            />
-          </el-select>
-          <PercentageInput
-            v-if="isPercentageSlot(s.key)"
-            v-model="localConfig[s.key].value"
-            :min="getMinValue(s.key)"
-            :max="getMaxValue(s.key)"
-            :disabled="!localConfig[s.key].attribute"
-            style="margin-left: 8px"
-          />
-          <template v-else>
-            <el-input-number
-              v-model="localConfig[s.key].value"
-              :min="getMinValue(s.key)"
-              :max="getMaxValue(s.key)"
-              :precision="getAttributePrecision(s.key)"
-              :step="getAttributeStep(s.key)"
-              size="default"
-              style="width: 140px; margin-left: 8px"
-              :disabled="!localConfig[s.key].attribute"
-            />
-            <span class="value-unit">{{ getValueUnit(s.key) }}</span>
-          </template>
-        </div>
-
-        <!-- 定音槽 -->
-        <div class="slot-row">
-          <div class="slot-label">
-            <el-tag type="success" size="small">定音</el-tag>
-          </div>
-          <el-select
-            v-model="localConfig.dingyin.attribute"
-            placeholder="选择词条"
-            size="default"
-            style="flex: 1"
-            :disabled="!hasSchool || !canUnlockDingyin"
-            clearable
-            @change="handleAttributeChange('dingyin')"
-          >
-            <el-option
-              v-for="attr in getAvailableAttributes(词条槽.定音)"
-              :key="attr"
-              :label="attr"
-              :value="attr"
-            />
-          </el-select>
-          <PercentageInput
-            v-if="isPercentageSlot('dingyin')"
-            v-model="localConfig.dingyin.value"
-            :min="getMinValue('dingyin')"
-            :max="getMaxValue('dingyin')"
-            :disabled="!localConfig.dingyin.attribute"
-            style="margin-left: 8px"
-          />
-          <template v-else>
-            <el-input-number
-              v-model="localConfig.dingyin.value"
-              :min="getMinValue('dingyin')"
-              :max="getMaxValue('dingyin')"
-              :precision="getAttributePrecision('dingyin')"
-              :step="getAttributeStep('dingyin')"
-              size="default"
-              style="width: 140px; margin-left: 8px"
-              :disabled="!localConfig.dingyin.attribute"
-            />
-            <span class="value-unit">{{ getValueUnit('dingyin') }}</span>
-          </template>
+  <el-dialog :model-value="modelValue" :title="`配置 ${slotName} 词条`" :width="isMobile ? '100%' : '660px'" :class="['equipment-dialog', { 'mobile-sheet': isMobile }]" append-to-body :close-on-click-modal="false" @update:model-value="emit('update:modelValue', $event)">
+    <div ref="slotsList" class="slots-list">
+      <div v-for="slot in Object.values(词条槽)" :key="slot" class="slot-row">
+        <label class="slot-label"><el-tag :type="slot === '宫' ? 'warning' : slot === '定音' ? 'success' : 'primary'">{{ slot }}</el-tag></label>
+        <el-select :model-value="draft[slot]?.名称 || ''" :aria-label="`${slot}词条`" filterable clearable :placeholder="slot === '定音' && !unlocked ? '先配置宫商角徵羽' : '搜索或选择词条'" :disabled="slot === '定音' && !unlocked" @change="changeAttribute(slot, $event)">
+          <el-option v-for="name in pool(slot)" :key="name" :label="name" :value="name" :disabled="disabled(slot, name)">
+            <span>{{ name }}</span><span class="option-value">{{ 格式化词条(name, 取词条范围(name)[1]) }}</span>
+          </el-option>
+        </el-select>
+        <div class="value-field">
+          <input v-model.number="draft[slot].值" type="number" inputmode="decimal" class="number-input" :aria-label="`${slot}数值`" :min="minimum(slot)" :max="maximum(slot)" step="0.01" :disabled="!draft[slot]?.名称" @change="clampValue(slot)" />
+          <span class="value-unit">{{ 是百分比词条(draft[slot]?.名称) ? '%' : '' }}</span>
         </div>
       </div>
     </div>
-
+    <div class="edit-actions">
+      <el-button :disabled="!canChengyin" @click="toggleChengyin">{{ draft.承音 ? '解除承音' : '应用承音' }}</el-button>
+      <el-button :disabled="!filled" @click="fillMax">填满已选词条</el-button>
+      <el-button :disabled="!filled" @click="draft = 建空白装备()">清空此部位</el-button>
+    </div>
+    <div v-if="preview" class="preview-panel">
+      <span>应用后外功攻击</span><strong>{{ Math.floor(preview.原始面板.最小外功攻击) }}～{{ Math.floor(preview.原始面板.最大外功攻击) }}</strong>
+      <span v-if="delta !== '0 / 0'" class="preview-delta">变化 {{ delta }}</span>
+    </div>
+    <p v-if="error" class="error-text" role="alert">{{ error }}</p>
     <template #footer>
-      <div class="footer-content">
-        <el-button type="success" :disabled="!canApplyChengyin" @click="handleApplyChengyin">
-          {{ chengyinButtonText }}
-        </el-button>
-        <div class="footer-right">
-          <el-button @click="handleClose">取消</el-button>
-          <el-button type="primary" @click="handleConfirm">确认配置</el-button>
-        </div>
-      </div>
+      <el-button @click="emit('update:modelValue', false)">取消</el-button>
+      <el-button v-if="hasNext" :disabled="Boolean(error)" @click="save(true)">保存并下一件</el-button>
+      <el-button type="primary" :disabled="Boolean(error)" @click="save(false)">应用配置</el-button>
     </template>
   </el-dialog>
 </template>
-
 <script setup>
-import { ref, computed, watch, onUnmounted } from 'vue'
-import { useSimulatorStore, CHENGYIN_RATIO } from '../stores/simulator.js'
-import PercentageInput from './PercentageInput.vue'
-import { ElMessage } from 'element-plus'
-import { 词条槽, 调律槽位, 取词条池, 取词条范围, 是百分比词条 } from '../data/affinities.js'
-
-const props = defineProps({
-  modelValue: { type: Boolean, default: false },
-  slotKey: { type: String, required: true },
-  slotName: { type: String, required: true }
-})
-const emit = defineEmits(['update:modelValue'])
-
+import { computed, ref, watch, nextTick } from 'vue'
+import { useSimulatorStore, 建空白装备, 整理装备 } from '../stores/simulator.js'
+import { useMediaQuery } from '../composables/useMediaQuery.js'
+import { 计算面板 } from '../domain/panel.js'
+import { 词条槽, 部位顺序, 调律槽位, 五音槽位, 取词条池, 取词条范围, 取承音值, 是百分比词条, 是属性攻击, 格式化词条 } from '../data/affinities.js'
+const props = defineProps({ modelValue: Boolean, slotKey: { type: String, required: true }, slotName: { type: String, required: true } })
+const emit = defineEmits(['update:modelValue', 'next'])
 const store = useSimulatorStore()
-
-const windowWidth = ref(window.innerWidth)
-const dialogWidth = computed(() => {
-  if (windowWidth.value < 768) return '95%'
-  if (windowWidth.value < 1200) return '500px'
-  return '600px'
+const isMobile = useMediaQuery('(max-width: 767px)')
+const draft = ref(建空白装备())
+const slotsList = ref(null)
+const unlocked = computed(() => 五音槽位.every(s => draft.value[s]?.名称))
+const canChengyin = computed(() => unlocked.value && draft.value.定音.名称)
+const filled = computed(() => Object.values(词条槽).some(s => draft.value[s]?.名称))
+const hasNext = computed(() => 部位顺序.indexOf(props.slotKey) < 部位顺序.length - 1)
+const error = computed(() => {
+  if (!props.slotKey) return ''
+  try { 整理装备(draft.value, props.slotKey, store.流派, store.变体); return '' }
+  catch (e) { return e.message }
 })
-function handleResize() {
-  windowWidth.value = window.innerWidth
+const preview = computed(() => {
+  if (error.value || !store.已选流派) return null
+  const equipment = 整理装备(draft.value, props.slotKey, store.流派, store.变体)
+  return 计算面板({ ...store.$state, 装备词条: { ...store.装备词条, [props.slotKey]: equipment } })
+})
+const delta = computed(() => {
+  const old = store.面板?.原始面板 || {}
+  const after = preview.value?.原始面板 || {}
+  return ['最小外功攻击', '最大外功攻击'].map(key => {
+    const value = Math.floor(after[key] || 0) - Math.floor(old[key] || 0)
+    return value > 0 ? `+${value}` : String(value)
+  }).join(' / ')
+})
+function pool(slot) { return 取词条池(slot, props.slotKey, store.流派, store.变体) }
+function disabled(slot, name) {
+  if (!调律槽位.includes(slot)) return false
+  const other = 调律槽位.filter(s => s !== slot).map(s => draft.value[s].名称)
+  return other.includes(name) || (是属性攻击(name) && other.filter(是属性攻击).length >= 2)
 }
-window.addEventListener('resize', handleResize)
-onUnmounted(() => window.removeEventListener('resize', handleResize))
-
-const visible = computed({
-  get: () => props.modelValue,
-  set: (val) => emit('update:modelValue', val)
-})
-
-const 四槽 = [
-  { key: 'shang', label: '商', 槽位: 词条槽.商 },
-  { key: 'jue', label: '角', 槽位: 词条槽.角 },
-  { key: 'zhi', label: '徵', 槽位: 词条槽.徵 },
-  { key: 'yu', label: '羽', 槽位: 词条槽.羽 }
-]
-const 槽位键 = {
-  gong: 词条槽.宫,
-  shang: 词条槽.商,
-  jue: 词条槽.角,
-  zhi: 词条槽.徵,
-  yu: 词条槽.羽,
-  dingyin: 词条槽.定音
+function clampValue(slot) { if (Number.isFinite(draft.value[slot].值)) draft.value[slot].值 = Math.max(minimum(slot), Math.min(maximum(slot), draft.value[slot].值)) }
+function minimum(slot) { return 取词条范围(draft.value[slot]?.名称)[0] }
+function maximum(slot) {
+  const name = draft.value[slot]?.名称
+  return draft.value.承音 && 五音槽位.includes(slot) ? 取承音值(name) : 取词条范围(name)[1]
 }
-
-const localConfig = ref({
-  chengyin: false,
-  gong: { attribute: null, value: null },
-  shang: { attribute: null, value: null },
-  jue: { attribute: null, value: null },
-  zhi: { attribute: null, value: null },
-  yu: { attribute: null, value: null },
-  dingyin: { attribute: null, value: null }
-})
-const beforeChengyinValues = ref({})
-
-const hasSchool = computed(() => store.流派 && store.变体)
-
-const equipmentData = computed(() => {
-  const equip = store.装备词条[props.slotKey] || {}
-  return {
-    chengyin: equip.承音 || false,
-    affinities: {
-      [词条槽.宫]: equip[词条槽.宫],
-      [词条槽.商]: equip[词条槽.商],
-      [词条槽.角]: equip[词条槽.角],
-      [词条槽.徵]: equip[词条槽.徵],
-      [词条槽.羽]: equip[词条槽.羽],
-      [词条槽.定音]: equip[词条槽.定音]
-    }
-  }
-})
-
-const canUnlockDingyin = computed(
-  () =>
-    localConfig.value.shang.attribute &&
-    localConfig.value.jue.attribute &&
-    localConfig.value.zhi.attribute &&
-    localConfig.value.yu.attribute
-)
-
-const canApplyChengyin = computed(() => {
-  if (!hasSchool.value) return false
-  return (
-    localConfig.value.gong.attribute &&
-    localConfig.value.shang.attribute &&
-    localConfig.value.jue.attribute &&
-    localConfig.value.zhi.attribute &&
-    localConfig.value.yu.attribute &&
-    localConfig.value.dingyin.attribute
-  )
-})
-
-const chengyinButtonText = computed(() =>
-  localConfig.value.chengyin ? '取消承音' : '承音'
-)
-
-function getAvailableAttributes(槽位) {
-  if (!hasSchool.value) return []
-  const pool = 取词条池(槽位, props.slotKey, store.流派, store.变体)
-  // 商/角/徵/羽 互斥
-  if (调律槽位.includes(槽位)) {
-    const 当前键 = Object.entries(槽位键).find(([, v]) => v === 槽位)?.[0]
-    const 已用 = Object.entries(槽位键)
-      .filter(([k, v]) => 调律槽位.includes(v) && k !== 当前键)
-      .map(([k]) => localConfig.value[k]?.attribute)
-      .filter(Boolean)
-    return pool.filter((attr) => !已用.includes(attr))
-  }
-  return pool
+function changeAttribute(slot, name) {
+  draft.value[slot] = { 名称: name || '', 值: name ? (draft.value.承音 && 五音槽位.includes(slot) ? 取承音值(name) : 取词条范围(name)[1]) : 0 }
+  if (!unlocked.value) { draft.value.定音 = { 名称: '', 值: 0 }; draft.value.承音 = false; delete draft.value.承音前数值 }
 }
-
-function handleAttributeChange(key) {
-  const config = localConfig.value[key]
-  if (config.attribute) {
-    const [, max] = 取词条范围(config.attribute)
-    config.value = max
+function fillMax() { for (const slot of Object.values(词条槽)) if (draft.value[slot].名称) draft.value[slot].值 = maximum(slot) }
+function toggleChengyin() {
+  if (!draft.value.承音) {
+    draft.value.承音前数值 = Object.fromEntries(五音槽位.map(s => [s, { ...draft.value[s] }]))
+    draft.value.承音 = true
+    for (const slot of 五音槽位) draft.value[slot].值 = 取承音值(draft.value[slot].名称)
   } else {
-    config.value = null
+    draft.value.承音 = false
+    for (const slot of 五音槽位) {
+      const before = draft.value.承音前数值?.[slot]
+      if (before?.名称 === draft.value[slot].名称) draft.value[slot].值 = before.值
+    }
+    delete draft.value.承音前数值
   }
 }
-
-function getMinValue(key) {
-  const attr = localConfig.value[key].attribute
-  if (!attr) return 0
-  return 取词条范围(attr)[0]
+function save(next) {
+  store.保存部位(props.slotKey, draft.value)
+  if (next) emit('next')
+  else emit('update:modelValue', false)
 }
-
-function getMaxValue(key) {
-  const attr = localConfig.value[key].attribute
-  if (!attr) return 99999
-  const [, max] = 取词条范围(attr)
-  const chengyinSlots = ['gong', 'shang', 'jue', 'zhi', 'yu']
-  if (localConfig.value.chengyin && chengyinSlots.includes(key)) {
-    return max * CHENGYIN_RATIO
+watch(() => [props.modelValue, props.slotKey], () => {
+  if (props.modelValue) {
+    draft.value = JSON.parse(JSON.stringify(store.装备词条[props.slotKey] || 建空白装备()))
+    nextTick(() => { if (slotsList.value) slotsList.value.parentElement.scrollTop = 0 })
   }
-  return max
-}
-
-function isPercentageSlot(key) {
-  const attr = localConfig.value[key].attribute
-  return attr ? 是百分比词条(attr) : false
-}
-function getAttributePrecision(key) {
-  const attr = localConfig.value[key].attribute
-  if (!attr) return 2
-  return 是百分比词条(attr) ? 4 : 1
-}
-function getAttributeStep(key) {
-  const attr = localConfig.value[key].attribute
-  if (!attr) return 1
-  return 是百分比词条(attr) ? 0.0001 : 0.1
-}
-function getValueUnit(key) {
-  const attr = localConfig.value[key].attribute
-  return attr && 是百分比词条(attr) ? '%' : ''
-}
-
-function handleApplyChengyin() {
-  const chengyinSlots = ['gong', 'shang', 'jue', 'zhi', 'yu']
-  if (!localConfig.value.chengyin) {
-    for (const key of chengyinSlots) {
-      const config = localConfig.value[key]
-      if (config.attribute) {
-        beforeChengyinValues.value[key] = config.value
-        const [, max] = 取词条范围(config.attribute)
-        config.value = max * CHENGYIN_RATIO
-      }
-    }
-    localConfig.value.chengyin = true
-    保存到store()
-    ElMessage.success('已应用承音，词条数值调整为满值的94%')
-  } else {
-    for (const key of chengyinSlots) {
-      const config = localConfig.value[key]
-      if (config.attribute && beforeChengyinValues.value[key] !== undefined) {
-        config.value = beforeChengyinValues.value[key]
-      }
-    }
-    localConfig.value.chengyin = false
-    beforeChengyinValues.value = {}
-    保存到store()
-    ElMessage.success('已取消承音，词条数值已恢复')
-  }
-}
-
-function 保存到store() {
-  for (const [key, 槽位] of Object.entries(槽位键)) {
-    const config = localConfig.value[key]
-    if (config.attribute && config.value !== null) {
-      store.设置词条(props.slotKey, 槽位, config.attribute)
-      store.设置词条值(props.slotKey, 槽位, config.value)
-    } else {
-      store.清空槽位(props.slotKey, 槽位)
-    }
-  }
-  if (localConfig.value.chengyin) store.应用承音(props.slotKey)
-  else store.取消承音(props.slotKey)
-}
-
-function handleClose() {
-  emit('update:modelValue', false)
-}
-function handleDialogUpdate(val) {
-  emit('update:modelValue', val)
-}
-
-function handleConfirm() {
-  const chengyinEnabled = localConfig.value.chengyin
-  if (chengyinEnabled) {
-    const chengyinSlots = ['gong', 'shang', 'jue', 'zhi', 'yu']
-    for (const key of chengyinSlots) {
-      const config = localConfig.value[key]
-      if (config.attribute && config.value !== null) {
-        const chengyinMax = 取词条范围(config.attribute)[1] * CHENGYIN_RATIO
-        if (config.value > chengyinMax) config.value = chengyinMax
-      }
-    }
-  }
-  保存到store()
-  ElMessage.success('已保存词条配置')
-  emit('update:modelValue', false)
-}
-
-watch(
-  () => props.modelValue,
-  (isOpen) => {
-    if (!isOpen) return
-    const a = equipmentData.value.affinities
-    localConfig.value = {
-      chengyin: equipmentData.value.chengyin,
-      gong: { attribute: a[词条槽.宫]?.名称 || null, value: a[词条槽.宫]?.值 || null },
-      shang: { attribute: a[词条槽.商]?.名称 || null, value: a[词条槽.商]?.值 || null },
-      jue: { attribute: a[词条槽.角]?.名称 || null, value: a[词条槽.角]?.值 || null },
-      zhi: { attribute: a[词条槽.徵]?.名称 || null, value: a[词条槽.徵]?.值 || null },
-      yu: { attribute: a[词条槽.羽]?.名称 || null, value: a[词条槽.羽]?.值 || null },
-      dingyin: { attribute: a[词条槽.定音]?.名称 || null, value: a[词条槽.定音]?.值 || null }
-    }
-  },
-  { immediate: true }
-)
+}, { immediate: true })
 </script>
-
 <style scoped>
-.affinity-config-content {
-  padding: 4px 0;
-}
-.slots-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.slot-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.slot-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 64px;
-}
-.slot-hint {
-  font-size: var(--font-size-base);
-  color: var(--color-text-secondary);
-}
-.value-unit {
-  font-size: 14px;
-  color: #606266;
-}
-.footer-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.footer-right {
-  display: flex;
-  gap: 10px;
+.slots-list { display: flex; flex-direction: column; gap: 16px; }
+.slot-row { display: grid; grid-template-columns: 48px minmax(0, 1fr) 138px; align-items: start; gap: 10px; }
+.slot-label { padding-top: 4px; }
+.value-field { display: grid; grid-template-columns: minmax(0, 1fr) 14px; align-items: center; gap: 4px; }
+.number-input { background:var(--surface); width: 100%; min-height: 34px; border: 1px solid var(--color-border-base); border-radius: 4px; padding: 6px 10px; color: var(--color-text-primary); font: inherit; font-size: 14px; }
+.number-input:disabled { background: var(--color-bg-secondary); color: var(--color-text-secondary); }
+.number-input:focus { outline: 1px solid var(--color-primary); border-color: var(--color-primary); }
+.value-field small { grid-column: 1 / -1; font-size: 11px; color: var(--color-text-secondary); text-align: center; margin-top: 2px; }
+.value-unit { font-size: 12px; }
+.option-value { float: right; margin-left: 14px; color: var(--color-text-secondary); font-size: 12px; }
+.edit-actions { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 18px; }
+.edit-actions .el-button { margin-left: 0; }
+.preview-panel { display: flex; gap: 10px; align-items: center; padding: 14px; border-radius: 8px; background: var(--color-bg-secondary); margin-top: 16px; font-size: 13px; flex-wrap: wrap; }
+.preview-delta { color: var(--color-primary); font-size: 12px; }
+.error-text { font-size: 13px; color: #b93a3a; }
+@media (max-width: 767px) {
+  .slot-row { grid-template-columns: 48px minmax(0, 1fr); gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--color-border-light); }
+  .value-field { grid-column: 2; grid-template-columns: minmax(0, 100px) 14px minmax(0, 1fr); }
+  .value-field small { grid-column: auto; text-align: left; }
 }
 </style>
+
+

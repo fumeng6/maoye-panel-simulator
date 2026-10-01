@@ -7,11 +7,15 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:panel": "node scripts/build-panel.mjs",
+    "deploy": "npm run build:panel && wrangler pages deploy dist --project-name=maoye-panel-simulator --branch=main"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
+    "@supabase/supabase-js": "^2.117.2",
     "element-plus": "^2.7.0",
+    "html2canvas": "^1.4.1",
     "pinia": "^2.1.7",
     "vue": "^3.4.0"
   },

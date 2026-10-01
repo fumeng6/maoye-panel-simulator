@@ -1,99 +1,23 @@
-/* 设计语言完全对齐「燕云培养助手」 */
-
-:root {
-  --color-brand-start: #667eea;
-  --color-brand-end: #764ba2;
-  --color-brand-gradient: linear-gradient(135deg, var(--color-brand-start) 0%, var(--color-brand-end) 100%);
-
-  --color-text-primary: #303133;
-  --color-text-regular: #606266;
-  --color-text-secondary: #909399;
-  --color-text-placeholder: #c0c4cc;
-  --color-text-heading: #1f2d3d;
-  --color-bg-base: #fff;
-  --color-bg-secondary: #f5f7fa;
-  --color-bg-card: #fff;
-  --color-bg-header: rgba(255, 255, 255, 0.95);
-  --color-bg-tab-bar: rgba(255, 255, 255, 0.98);
-  --color-shadow-header: 0 2px 12px rgba(0, 0, 0, 0.1);
-  --color-shadow-tab-bar: 0 -2px 12px rgba(0, 0, 0, 0.1);
-  --color-border-tab-bar: rgba(0, 0, 0, 0.06);
-  --color-bg-app: linear-gradient(135deg, var(--color-brand-start) 0%, var(--color-brand-end) 100%);
-
-  --color-border-base: #dcdfe6;
-  --color-border-light: #e4e7ed;
-  --color-border-lighter: #ebeef5;
-
-  --color-success: #67c23a;
-  --color-warning: #e6a23c;
-  --color-danger: #f56c6c;
-  --color-info: #909399;
-  --color-primary: #409eff;
-  --color-primary-light-9: #ecf5ff;
-  --color-primary-light-7: #b3d8ff;
-  --color-grade-b-bg: #f0f9ff;
-
-  --color-school-mingjin: #3b82f6;
-  --color-school-lieshi: #e6a23c;
-  --color-school-pozhu: #9333ea;
-  --color-school-qiansi: #22c55e;
-
-  --color-tag-purple-bg: #fcf6ff;
-  --color-tag-purple-border: #e9d5ff;
-  --color-tag-purple-text: #9333ea;
-  --color-tag-green-bg: #f0fdf4;
-  --color-tag-green-border: #bbf7d0;
-  --color-tag-green-text: #22c55e;
-  --color-tag-blue-bg: #eff6ff;
-  --color-tag-blue-border: #bfdbfe;
-  --color-tag-blue-text: #3b82f6;
-  --color-tag-amber-text: #f59e0b;
-
-  --font-size-sm: 11px;
-  --font-size-base: 12px;
-  --font-size-md: 13px;
-  --font-size-lg: 14px;
-  --font-size-xl: 15px;
-  --font-size-2xl: 16px;
-  --font-size-5xl: 20px;
-
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 12px;
-  --radius-2xl: 16px;
+:root{
+ --app-bg:#f0f3f8;--surface:#fff;--surface-soft:#f5f7fb;--text-strong:#23334b;--text:#44536a;--muted:#7b889a;--accent:#4d63ad;--effective:#ab7900;--border:#e0e6ef;--track:#e8edf4;--success:#4b9d35;
+ --tone-gold:#bc811e;--tone-gold-bg:#fff9ec;--tone-gold-border:#f0dfb7;--tone-blue:#409eff;--tone-blue-bg:#f0f7ff;--tone-blue-border:#c5dff9;--tone-green:#67c23a;--tone-green-bg:#f4fbef;--tone-green-border:#cfe7bf;
+ --el-color-primary:#4d63ad;--el-color-primary-light-3:#8392c6;--el-color-primary-light-5:#a7b1d6;--el-color-primary-light-7:#c9d0e6;--el-color-primary-light-9:#eff2fa;
+ color-scheme:light
 }
-
-* {
-  box-sizing: border-box;
+:root.dark{
+ --app-bg:#111721;--surface:#1c2431;--surface-soft:#232e3f;--text-strong:#edf2fa;--text:#c5d0df;--muted:#95a3b7;--accent:#9daef3;--effective:#efbf50;--border:#344157;--track:#354054;--success:#8ac96d;
+ --tone-gold:#e6a23c;--tone-gold-bg:#342e22;--tone-gold-border:#67522e;--tone-blue:#69b1ff;--tone-blue-bg:#202f43;--tone-blue-border:#385676;--tone-green:#81ca5a;--tone-green-bg:#263326;--tone-green-border:#44673b;
+ --el-color-primary:#9daef3;--el-color-primary-light-3:#7d8ebc;--el-color-primary-light-5:#5e6f97;--el-color-primary-light-7:#3b4d72;--el-color-primary-light-8:#2a3953;--el-color-primary-light-9:#26334b;--el-color-primary-dark-2:#bdc8fa;
+ --el-color-success:#81ca5a;--el-color-success-light-9:#263326;--el-color-success-light-8:#32482b;--el-color-warning:#e6a23c;--el-color-warning-light-9:#342e22;--el-color-warning-light-8:#564126;--el-color-danger-light-9:#39272c;
+ color-scheme:dark
 }
-
-html,
-body,
-#app {
-  margin: 0;
-  height: 100%;
-  color: var(--color-text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
-    'Microsoft YaHei', sans-serif;
-  -webkit-font-smoothing: antialiased;
+:root{
+ --el-bg-color:var(--surface);--el-bg-color-page:var(--app-bg);--el-bg-color-overlay:var(--surface);--el-fill-color-blank:var(--surface);--el-fill-color-light:var(--surface-soft);--el-fill-color:var(--track);--el-fill-color-lighter:var(--surface-soft);--el-fill-color-dark:var(--track);--el-text-color-primary:var(--text-strong);--el-text-color-regular:var(--text);--el-text-color-secondary:var(--muted);--el-text-color-placeholder:var(--muted);--el-border-color:var(--border);--el-border-color-light:var(--border);--el-border-color-lighter:var(--border);--el-disabled-bg-color:var(--surface-soft);--el-disabled-text-color:var(--muted);--el-disabled-border-color:var(--border);--el-mask-color:rgba(0,0,0,.6);
+ --color-text-primary:var(--text-strong);--color-text-regular:var(--text);--color-text-secondary:var(--muted);--color-text-heading:var(--text-strong);--color-bg-base:var(--surface);--color-bg-secondary:var(--surface-soft);--color-bg-card:var(--surface);--color-border-base:var(--border);--color-border-light:var(--border);--color-primary:var(--accent)
 }
-
-button {
-  font-family: inherit;
-}
-
-/* ===== 通用卡片 ===== */
-.module-card {
-  background: var(--color-bg-card);
-  border-radius: var(--radius-xl);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Element Plus 滚动条统一 */
-.el-scrollbar__bar {
-  opacity: 0.4;
-}
+.quality-gold{--book-color:#aa7900;--book-bg:#fff8e5;--book-border:#ecd69b}.quality-purple{--book-color:#8546b5;--book-bg:#faf2ff;--book-border:#dcbdea}.quality-blue{--book-color:#327cbb;--book-bg:#eff7ff;--book-border:#bfd9ed}
+.dark .quality-gold{--book-color:#e8be5b;--book-bg:#352f22;--book-border:#6c5832}.dark .quality-purple{--book-color:#c899ef;--book-bg:#30253e;--book-border:#634777}.dark .quality-blue{--book-color:#7eb8ed;--book-bg:#233247;--book-border:#3a5a7a}
+.el-tag.quality-gold,.el-tag.quality-purple,.el-tag.quality-blue{--el-tag-text-color:var(--book-color);--el-tag-bg-color:var(--book-bg);--el-tag-border-color:var(--book-border)}
+*{box-sizing:border-box}html,body,#app{height:100%;margin:0;overflow:hidden;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;-webkit-font-smoothing:antialiased}button,input{font-family:inherit}button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}.module-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 3px 14px #24365006;overflow:hidden;display:flex;flex-direction:column}.helper-text{font-size:12px;color:var(--muted);line-height:1.7}.el-scrollbar__bar{opacity:.5}.picker-dialog,.equipment-dialog{display:flex;flex-direction:column;max-height:90dvh;margin-top:5dvh!important;margin-bottom:0!important}.picker-dialog .el-dialog__body,.equipment-dialog .el-dialog__body{min-height:0;overflow-y:auto;overscroll-behavior:contain}.el-dialog__header,.el-dialog__footer{flex:none}.slot-label .el-tag--primary{--el-tag-text-color:var(--tone-blue);--el-tag-bg-color:var(--tone-blue-bg);--el-tag-border-color:var(--tone-blue-border)}
+@media(max-width:767px){.el-overlay-dialog:has(.mobile-sheet){display:flex;align-items:flex-end}.equipment-dialog.mobile-sheet{margin:0!important;max-height:94dvh;border-radius:16px 16px 0 0;padding-bottom:calc(16px + env(safe-area-inset-bottom))}.el-dialog__footer .el-button{min-height:40px;padding:8px 12px}.el-select,.el-input{--el-component-size:36px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;scroll-behavior:auto!important}}
