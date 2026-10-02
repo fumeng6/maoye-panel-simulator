@@ -101,4 +101,10 @@ watch(() => [store.流派, store.变体, data.value.modifiers.length, modifierPa
 .attack-numbers b{margin-left:0}
 @media(max-width:1023px){.attack-numbers.absorbed{font-size:14px;gap:0 2px}.attack-numbers b{font-size:.72em}.rate-ring small{font-size:11px}.rate-ring .rate-overflow{font-size:11px}}
 @media(max-height:720px) and (max-width:1023px){.rate-ring small,.rate-ring .rate-overflow{font-size:10px}}
+/* 留出完整的两行标题高度，行间隔不依赖剩余空间。 */
+.modifier-grid{grid-template-rows:repeat(3,minmax(44px,1fr));row-gap:12px}
+@media(min-width:1024px){.attribute-panel-root{gap:12px}.chart-view{gap:12px}.section-caption{margin-bottom:8px}.rate-ring svg{width:76px;height:76px}.rate-ring>strong{top:28px}.direct-rates{margin-top:8px}}
+@media(max-width:1023px){.modifier-grid{grid-template-rows:repeat(3,minmax(38px,1fr));row-gap:8px}}
+@media(max-width:1023px) and (max-height:720px){.chart-view{gap:2px}.modifier-grid{grid-template-rows:repeat(3,minmax(34px,1fr));row-gap:7px}}
+@media(min-width:1024px) and (max-height:820px){.chart-view{gap:8px}}
 </style>
