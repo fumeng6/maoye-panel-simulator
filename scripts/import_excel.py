@@ -352,6 +352,7 @@ def import_record(sheets, data):
     for col, name in columns(sheet):
         if col not in list('BCDEFGHIJKLMNOP'):
             continue  # 防具套装不参与本工具的攻击面板
+        name = name.replace("弓诀", "弓玦").replace("弓决", "弓玦")
         entry = next((e for entries in sets["分类"].values() for e in entries if e["名称"] == name), None)
         if entry is None:
             raise ValueError(f"未配置套装 {name}，请补充其分类与键")
@@ -372,7 +373,7 @@ def import_record(sheets, data):
                 attrs[attr] -= white[cell]
         attrs = {k: v for k, v in attrs.items() if abs(v) > 1e-8}
         entry["加成属性"] = list(attrs)
-        mapping = {k: bows[k][1] for k in attrs} if name.startswith("弓诀") else {}
+        mapping = {k: bows[k][1] for k in attrs} if name.startswith("弓玦") else {}
         overrides = {k: v for k, v in attrs.items() if sets["数值总表"].get(mapping.get(k, k)) != v}
         entry.pop("取值", None)
         entry.pop("数值覆盖", None)

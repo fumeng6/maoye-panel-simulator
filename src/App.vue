@@ -4,8 +4,7 @@
     <section class="config-strip" aria-label="配装选择">
       <button class="school-trigger" @click="schoolOpen=true"><small>武学流派</small><strong>{{ store.已选流派 ? store.流派+store.变体 : '选择流派' }}</strong><span>⌄</span></button>
       <div class="heart-config"><button class="heart-trigger" :disabled="!store.已选流派" @click="heartOpen=true">心法 <span>⌄</span></button><div class="heart-results"><button v-for="book in store.心法列表" :key="book" :class="qualityClass(book)" @click="heartOpen=true">{{ book }}</button><span v-if="!store.心法列表.length" class="placeholder">未选择</span></div></div>
-      <label class="set-config"><small>弓玦套装</small><el-select v-model="store.套装选择.弓决" :disabled="!store.已选流派" clearable placeholder="未选择" aria-label="弓玦套装"><el-option v-for="s in 取套装列表('弓决')" :key="s.键" :label="s.名称" :value="s.键" /></el-select></label>
-      <label class="set-config"><small>武器套装</small><el-select v-model="store.套装选择.武器" :disabled="!store.已选流派" clearable placeholder="未选择" aria-label="武器套装"><el-option v-for="s in 取套装列表('武器')" :key="s.键" :label="s.名称" :value="s.键" /></el-select></label>
+      <label v-for="category in setCategories" :key="category.key" class="set-config"><small>{{ category.label }}</small><el-select v-model="store.套装选择[category.key]" :disabled="!store.已选流派" clearable placeholder="未选择" :aria-label="category.label" popper-class="set-options"><el-option v-for="s in 取套装列表(category.key)" :key="s.键" :label="s.名称" :value="s.键"><strong>{{ s.名称 }}</strong><small>两件套 · {{ setBonus(s) }}</small></el-option></el-select><span class="set-bonus">{{ setBonus(取套装(category.key, store.套装选择[category.key])) }}</span></label>
     </section>
     <main class="main-grid"><section v-show="!isMobile || currentPage==='panel'" class="module-card"><AttributePanel @choose-school="schoolOpen=true" /></section><section v-show="!isMobile || currentPage!=='panel'" class="module-card"><EquipmentManager :group="isMobile ? (currentPage==='armor' ? 'armor' : 'weapons') : 'all'" /></section></main>
     <SchoolSelector v-model:school-open="schoolOpen" v-model:heart-open="heartOpen" /><PlanManager v-model="plansOpen" /><ShareDialog v-model="shareOpen" />
@@ -21,7 +20,8 @@ import { useSimulatorStore } from './stores/simulator.js'
 import { usePlansStore } from './stores/plans.js'
 import { useMediaQuery } from './composables/useMediaQuery.js'
 import { 心法记录 } from './data/xinfa.js'
-import { 取套装列表 } from './data/sets.js'
+import { 取套装列表, 取套装 } from './data/sets.js'
+import { 格式化词条 } from './data/affinities.js'
 import 数据 from './data/game/规则.json'
 import AttributePanel from './components/AttributePanel.vue'
 import SchoolSelector from './components/SchoolSelector.vue'
@@ -33,6 +33,8 @@ const store=useSimulatorStore(), plans=usePlansStore()
 const isMobile=useMediaQuery('(max-width:1023px)'), currentPage=ref('panel'), schoolOpen=ref(false), heartOpen=ref(false), plansOpen=ref(false), shareOpen=ref(false), saveError=ref('')
 const tabs=[{key:'panel',label:'战斗面板',icon:DataAnalysis},{key:'weapons',label:'武器四件',icon:SetUp},{key:'armor',label:'防具四件',icon:Grid}]
 function qualityClass(name){return 'quality-'+({金色:'gold',紫色:'purple',蓝色:'blue'}[心法记录[name]?.品质] || 'unknown')}
+const setCategories=[{key:'弓决',label:'弓玦'},{key:'武器',label:'武器套装'}]
+function setBonus(set){return set ? Object.entries(set.面板加成).map(([name,value])=>`${name} +${格式化词条(name,value)}`).join(' · ') : ''}
 const storageKey='maoye-panel-loadout-v1'
 const dark=ref(false)
 const backgroundModes=[{key:'clouds',label:'山水流云'},{key:'stars',label:'星河流萤'},{key:'bamboo',label:'风起竹影'},{key:'plain',label:'简洁静态'}]
@@ -59,6 +61,8 @@ store.$subscribe(()=>{
 @media(max-width:1023px){.config-strip{grid-template-columns:1fr 1fr;gap:7px;padding:7px}.school-trigger,.heart-config{height:51px;padding:6px 8px}.school-trigger small{display:none}.school-trigger>span{top:12px;right:8px}.heart-config{flex-direction:row;align-items:center;gap:6px}.heart-results{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));flex:1;gap:3px}.heart-results button{font-size:10px;padding:3px 2px}.heart-trigger{white-space:nowrap;font-size:11px}.set-config{height:38px;padding:3px 6px;gap:5px}.set-config>small{font-size:10px;margin:0}.set-config .el-select{--el-component-size:30px}}
 @media(min-width:1024px) and (max-width:1280px), (min-width:1024px) and (max-height:800px){.app-container{border-radius:0}}
 .background-label,.size-label{margin-left:5px}
+.set-config{padding:5px 10px;display:flex;flex-direction:column;align-items:stretch;gap:2px}.set-config>small{margin:0;line-height:14px}.set-config .el-select{flex:none;--el-component-size:28px}.set-bonus{height:14px;line-height:14px;font-size:11px;color:var(--accent);white-space:nowrap}
+@media(max-width:1023px){.set-config{height:56px;padding:4px 6px;display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:28px 14px;column-gap:5px;row-gap:1px}.set-config>small{grid-row:1;align-self:center}.set-config .el-select{grid-column:2;grid-row:1}.set-bonus{grid-column:1 / 3;grid-row:2;font-size:10px;text-align:right}}
 .layout-fill{padding:12px}.layout-fill .app-container{width:100%;height:calc(100dvh - 24px);border-radius:16px}
 @media(max-width:1023px){.background-label{display:none}.layout-fill{padding:0}.layout-fill .app-container{height:100dvh;border-radius:0}}
 </style>
