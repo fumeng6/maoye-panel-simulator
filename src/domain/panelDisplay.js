@@ -51,7 +51,7 @@ export function 显示增益(item, effective = false) {
 }
 
 export function 显示攻击(item) {
-  const bound = (value, bonus) => `${整数(value)}${bonus ? `（+${整数(bonus)}）` : ''}`
+  const bound = (value, bonus) => `${整数(value)}${bonus ? `(+${整数(bonus)})` : ''}`
   return item.min > item.max
     ? `最小 ${bound(item.min, item.absorbedMin)} / 最大 ${bound(item.max, item.absorbedMax)}`
     : `${bound(item.min, item.absorbedMin)}～${bound(item.max, item.absorbedMax)}`

@@ -1,9 +1,9 @@
 <template>
-  <el-dialog :model-value="modelValue" :title="`配置 ${slotName} 词条`" :width="isMobile ? '100%' : '660px'" :class="['equipment-dialog', { 'mobile-sheet': isMobile }]" append-to-body :close-on-click-modal="false" @update:model-value="emit('update:modelValue', $event)">
+  <el-dialog :model-value="modelValue" :title="`配置 ${slotName} 词条`" :width="isMobile ? 'calc(100vw - 24px)' : '660px'" :class="['equipment-dialog', { 'mobile-sheet': isMobile }]" append-to-body :close-on-click-modal="false" @update:model-value="emit('update:modelValue', $event)">
     <div ref="slotsList" class="slots-list">
       <div v-for="slot in Object.values(词条槽)" :key="slot" class="slot-row">
         <label class="slot-label"><el-tag :type="slot === '宫' ? 'warning' : slot === '定音' ? 'success' : 'primary'">{{ slot }}</el-tag></label>
-        <el-select :model-value="draft[slot]?.名称 || ''" :aria-label="`${slot}词条`" filterable clearable :placeholder="slot === '定音' && !unlocked ? '先配置宫商角徵羽' : '搜索或选择词条'" :disabled="slot === '定音' && !unlocked" @change="changeAttribute(slot, $event)">
+        <el-select :model-value="draft[slot]?.名称 || ''" :aria-label="`${slot}词条`" :filterable="!isMobile" clearable :placeholder="slot === '定音' && !unlocked ? '先配置宫商角徵羽' : isMobile ? '选择词条' : '搜索或选择词条'" :disabled="slot === '定音' && !unlocked" @change="changeAttribute(slot, $event)">
           <el-option v-for="name in pool(slot)" :key="name" :label="name" :value="name" :disabled="disabled(slot, name)">
             <span>{{ name }}</span><span class="option-value">{{ 格式化词条(name, 取词条范围(name)[1]) }}</span>
           </el-option>
@@ -40,7 +40,7 @@ import { 词条槽, 部位顺序, 调律槽位, 五音槽位, 取词条池, 取�
 const props = defineProps({ modelValue: Boolean, slotKey: { type: String, required: true }, slotName: { type: String, required: true } })
 const emit = defineEmits(['update:modelValue', 'next'])
 const store = useSimulatorStore()
-const isMobile = useMediaQuery('(max-width: 767px)')
+const isMobile = useMediaQuery('(max-width: 1023px)')
 const draft = ref(建空白装备())
 const slotsList = ref(null)
 const unlocked = computed(() => 五音槽位.every(s => draft.value[s]?.名称))
@@ -124,10 +124,14 @@ watch(() => [props.modelValue, props.slotKey], () => {
 .preview-panel { display: flex; gap: 10px; align-items: center; padding: 14px; border-radius: 8px; background: var(--color-bg-secondary); margin-top: 16px; font-size: 13px; flex-wrap: wrap; }
 .preview-delta { color: var(--color-primary); font-size: 12px; }
 .error-text { font-size: 13px; color: #b93a3a; }
-@media (max-width: 767px) {
-  .slot-row { grid-template-columns: 48px minmax(0, 1fr); gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--color-border-light); }
-  .value-field { grid-column: 2; grid-template-columns: minmax(0, 100px) 14px minmax(0, 1fr); }
-  .value-field small { grid-column: auto; text-align: left; }
+@media (max-width: 1023px) {
+  .slots-list { gap:12px }
+  .slot-row { grid-template-columns:32px minmax(0,1fr) 84px; align-items:center; gap:6px }
+  .slot-label { padding-top:0 }.slot-label .el-tag { padding:0 5px }
+  .value-field { grid-template-columns:minmax(0,1fr) 10px; gap:2px }
+  .number-input { min-height:36px; padding:6px; font-size:16px }
+  .edit-actions { gap:6px; padding-top:16px }.edit-actions .el-button { padding:8px; font-size:12px }
+  .preview-panel { padding:10px; gap:6px; font-size:12px }
 }
 </style>
 
