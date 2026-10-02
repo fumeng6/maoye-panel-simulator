@@ -39,7 +39,7 @@ export function 取面板展示(state) {
     if (key === `${panel.本系属性}穿透`) {
       max += (base[key] || 0) + 装备属性上限('无相穿透', state.流派, state.变体)
     }
-    const [schoolName, moveName] = key.includes('·') ? key.replace(/增伤$/, '').split('·') : ['', key]
+    const [schoolName, moveName] = key.includes('·') ? key.split('·') : ['', key]
     return { key, schoolName, moveName, value: raw[key], effective: panel.增益有效面板[key], max, ratio: 进度(raw[key], max), percent: 是百分比词条(key) || /加成|增伤|增效/.test(key) }
   })
   return { panel, raw, attacks, rates, direct, modifiers }
