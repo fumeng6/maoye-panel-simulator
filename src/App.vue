@@ -45,12 +45,21 @@ try{const saved=localStorage.getItem('maoye-panel-background');if(backgroundMode
 watch(background,value=>{try{localStorage.setItem('maoye-panel-background',value)}catch{}})
 try{dark.value=localStorage.getItem('maoye-panel-theme')==='dark' || (!localStorage.getItem('maoye-panel-theme') && matchMedia('(prefers-color-scheme:dark)').matches)}catch{}
 watch(dark,value=>{document.documentElement.classList.toggle('dark',value);try{localStorage.setItem('maoye-panel-theme',value?'dark':'light')}catch{}},{immediate:true})
+let loadingConfig=false
+function saveLoadout(updatePlan=true){
+  if(!store.已选流派)return
+  try{const config=store.导出配置();localStorage.setItem(storageKey,JSON.stringify(config));if(updatePlan)plans.updateCurrent(config);saveError.value=''}catch{saveError.value='浏览器无法保存，请通过方案管理导出'}
+}
+// 加载方案触发的 $patch 会立即通知订阅，此时旧方案可能仍处于选中状态。
+store.$onAction(({name,after,onError})=>{
+  if(name!=='加载配置')return
+  loadingConfig=true
+  after(()=>{loadingConfig=false;saveLoadout(false)})
+  onError(()=>{loadingConfig=false})
+})
 plans.restore()
 try{const saved=localStorage.getItem(storageKey);if(plans.active)store.加载配置(plans.active.config);else if(saved)store.加载配置(JSON.parse(saved))}catch{saveError.value='保存的配装无法读取，可通过方案管理重新导入'}
-store.$subscribe(()=>{
-  if(!store.已选流派)return
-  try{const config=store.导出配置();localStorage.setItem(storageKey,JSON.stringify(config));plans.updateCurrent(config);saveError.value=''}catch{saveError.value='浏览器无法保存，请通过方案管理导出'}
-},{detached:true,flush:'post'})
+store.$subscribe(()=>{if(!loadingConfig)saveLoadout()},{detached:true,flush:'post'})
 </script>
 <style scoped>
 .app-stage{position:relative;isolation:isolate;height:100dvh;display:grid;place-items:center;background:var(--app-bg)}.app-container{position:relative;z-index:1;width:min(1280px,100%);height:min(800px,100dvh);border-radius:16px;box-shadow:0 24px 80px #0a173329,0 0 0 1px var(--border);display:flex;flex-direction:column;background:var(--app-bg);overflow:hidden}.app-header{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;gap:14px;background:var(--surface);border-bottom:1px solid var(--border);flex:none}.logo{display:flex;align-items:baseline;gap:12px;min-width:0}.logo h1{font-size:19px;color:var(--text-strong);margin:0;white-space:nowrap}.logo>span{font-size:11px;color:var(--muted)}.header-actions{display:flex;gap:8px;flex:none}.header-actions .el-button{margin:0}.config-strip{margin:12px 20px 0;display:grid;grid-template-columns:140px minmax(0,1fr) 160px 160px;align-items:center;gap:20px;padding:12px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);flex:none}.school-trigger{border:0;background:transparent;position:relative;text-align:left;color:var(--text-strong);padding:0 24px 0 0;cursor:pointer}.school-trigger small,.set-config>small{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}.school-trigger strong{font-size:19px}.school-trigger>span{position:absolute;right:0;top:22px;color:var(--muted)}.heart-config{display:flex;gap:12px;align-items:center;min-width:0}.heart-trigger{border:1px solid var(--border);border-radius:7px;padding:8px 12px;white-space:nowrap;background:var(--surface-soft);color:var(--text);cursor:pointer;font-size:14px}.heart-trigger:disabled{opacity:.5;cursor:default}.heart-results{display:flex;flex-wrap:wrap;gap:6px;min-width:0}.heart-results button{font-size:13px;font-weight:650;background:var(--book-bg,var(--surface-soft));color:var(--book-color,var(--text));border:1px solid var(--book-border,var(--border));border-radius:6px;padding:6px 9px;cursor:pointer}.placeholder{font-size:13px;color:var(--muted)}.set-config{min-width:0}.set-config .el-select{width:100%}.main-grid{flex:1;min-height:0;display:grid;grid-template-columns:minmax(400px,1.25fr) minmax(0,1.75fr);grid-template-rows:minmax(0,1fr);gap:16px;padding:14px 20px 18px}.module-card{padding:18px;min-width:0;min-height:0;height:100%}.mobile-tab-bar{display:flex;background:var(--surface);border-top:1px solid var(--border);padding:4px 8px calc(4px + env(safe-area-inset-bottom));flex:none}.mobile-tab-bar button{flex:1;min-height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border:0;border-radius:8px;background:transparent;color:var(--muted);font-size:12px;cursor:pointer}.mobile-tab-bar .el-icon{font-size:18px}.mobile-tab-bar button.active{color:var(--accent);background:var(--surface-soft);font-weight:650}.save-error{position:fixed;bottom:60px;left:20px;background:var(--surface);border:1px solid var(--border);padding:10px;font-size:12px;color:var(--el-color-danger)}

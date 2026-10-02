@@ -18,7 +18,10 @@ export const usePlansStore = defineStore('plans', {
       const plan = { id: crypto.randomUUID(), name: name.trim() || '未命名方案', config: copy(config), updatedAt: new Date().toISOString(), deleted: false }
       this.items.push(plan); this.activeId = plan.id; this.persist(); return plan
     },
-    updateCurrent(config) { if (this.active) { this.active.config = copy(config); this.active.updatedAt = new Date().toISOString(); this.persist() } },
+    updateCurrent(config) {
+      const plan = this.active
+      if (plan && JSON.stringify(plan.config) !== JSON.stringify(config)) { plan.config = copy(config); plan.updatedAt = new Date().toISOString(); this.persist() }
+    },
     select(id) { this.activeId = id; this.persist() },
     rename(id, name) { const p = this.items.find(p => p.id === id); p.name = name.trim() || p.name; p.updatedAt = new Date().toISOString(); this.persist() },
     remove(id) { const p = this.items.find(p => p.id === id); p.deleted = true; p.updatedAt = new Date().toISOString(); if (this.activeId === id) this.activeId = ''; this.persist() },
