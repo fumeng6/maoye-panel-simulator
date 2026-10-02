@@ -55,7 +55,10 @@ export function 整理配置(文件) {
       if (文件?.格式版本 !== 1 || !文件.配置) throw Error('请选择本模拟器导出的配装 JSON 文件')
       const c = 文件.配置
       if (!流派注册表[c.流派]?.[c.变体]) throw Error('文件中的流派尚未支持')
-      if (!Array.isArray(c.心法列表) || c.心法列表.length > 4 || new Set(c.心法列表).size !== c.心法列表.length || c.心法列表.some(n => !Object.hasOwn(心法属性, n))) throw Error('心法列表无效')
+      if (!Array.isArray(c.心法列表) || c.心法列表.length > 4 || new Set(c.心法列表).size !== c.心法列表.length) throw Error('心法列表无效')
+      // 已移除心法不再生效，旧方案仍保留其他配置。
+      const 心法列表 = c.心法列表.filter(n => !['归燕经', '婆娑影', '丹心篆'].includes(n))
+      if (心法列表.some(n => !Object.hasOwn(心法属性, n))) throw Error('心法列表无效')
       const sets = {}
       for (const 分类 of ['弓决', '武器']) {
         const key = c.套装选择?.[分类] || ''
@@ -64,7 +67,7 @@ export function 整理配置(文件) {
       }
       const equip = {}
       for (const 部位 of 部位顺序) equip[部位] = 整理装备(c.装备词条?.[部位], 部位, c.流派, c.变体)
-  return { 流派: c.流派, 变体: c.变体, 心法列表: [...c.心法列表], 套装选择: sets, 装备词条: equip }
+  return { 流派: c.流派, 变体: c.变体, 心法列表, 套装选择: sets, 装备词条: equip }
 }
 
 export const useSimulatorStore = defineStore('simulator', {

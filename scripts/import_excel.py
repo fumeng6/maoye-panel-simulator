@@ -266,7 +266,7 @@ def import_record(sheets, data):
         books[name] = book
     for name, attrs in old_attrs.items():
         if name not in books:
-            books[name] = {"归属": owners.get(name, "未记录"), "品质": None, "属性": list(attrs),
+            books[name] = {"归属": owners.get(name, "未记录"), "品质": hearts.get("心法", {}).get(name, {}).get("品质"), "属性": list(attrs),
                            "说明": "记录表未列此心法，沿用旧值"}
             if attrs:
                 books[name]["数值覆盖"] = attrs

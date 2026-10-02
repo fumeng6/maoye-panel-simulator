@@ -87,11 +87,11 @@ watch(() => [store.流派, store.变体, data.value.modifiers.length, modifierPa
 .modifier-school{min-height:17px;flex:none;font-size:12px;line-height:17px;color:var(--muted)}.modifier .metric-line>span{white-space:nowrap}.modifier-number{letter-spacing:-.3px}
 .attack-numbers small{font-size:11px;font-weight:500;color:var(--muted);margin-right:4px}.attack-numbers.inverted{font-size:19px}.attack-numbers.inverted>span:first-child{color:var(--accent)}.attack-numbers.inverted>span:last-child{color:var(--effective)}
 .inverted-tracks{display:grid;gap:3px;margin-top:9px}.inverted-tracks>div{height:3px;border-radius:3px;background:var(--track)}.inverted-tracks i{display:block;height:100%;border-radius:3px;background:var(--accent)}.inverted-tracks>div:last-child i{background:var(--effective)}
-@media(min-width:1024px) and (max-width:1350px){.modifier .metric-line>span{font-size:11px}.modifier-number{font-size:13px}}
+@media(min-width:1024px){.modifier .metric-line>span{font-size:11px}.modifier-number{font-size:13px}}
 @media(max-width:1023px){.modifier-school{min-height:14px;font-size:11px;line-height:14px}.modifier .metric-line>span{font-size:10px}.modifier-number{font-size:12px}.attack-numbers.inverted{font-size:17px}.attack-numbers small{font-size:10px;margin-right:2px}}
 @media(max-height:720px) and (max-width:1023px){.inverted-tracks{margin-top:4px;gap:2px}.inverted-tracks>div{height:2px}.modifier-school{min-height:12px;font-size:10px;line-height:12px}.modifier-number{font-size:11px}}
 .mini-track.no-track{visibility:hidden}
-@media(min-width:1024px) and (max-width:1350px){.modifier.named-move .metric-line>span{font-size:10px}.modifier.named-move .modifier-number{font-size:12px}}
+@media(min-width:1024px){.modifier.named-move .metric-line>span{font-size:10px}.modifier.named-move .modifier-number{font-size:12px}}
 .attack-item{display:flex;flex-direction:column}.attack-item .metric-line{flex:1;justify-content:flex-start}.attack-scale{height:9px;flex:none;margin-top:9px}.attack-scale .range-track,.attack-scale .inverted-tracks{margin-top:0}
 @media(max-height:780px){.attack-scale{margin-top:6px}}
 @media(max-height:720px) and (max-width:1023px){.attack-scale{height:6px;margin-top:4px}}
