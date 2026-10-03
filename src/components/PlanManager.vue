@@ -1,6 +1,6 @@
 <template>
   <el-dialog v-model="open" title="方案管理" width="min(680px,94vw)" class="picker-dialog" append-to-body>
-    <div class="account-row"><div><strong>{{ user ? '已登录 · ' + user.email?.split('@')[0] : '本地方案' }}</strong><p>{{ cloudConfigured ? (user ? '选择要下载或上传的方案' : '登录后可在设备间传送已保存方案') : '账号服务待连接，本地方案可正常使用' }}</p></div><div class="account-actions"><el-button v-if="!user" :disabled="!cloudConfigured" @click="authOpen=true">注册 / 登录</el-button><template v-else><el-button :disabled="busy" @click="prepareTransfer('download')">从云端下载</el-button><el-button :disabled="busy || !plans.visible.length" @click="prepareTransfer('upload')">上传到云端</el-button><el-button :disabled="busy" @click="logout">退出</el-button></template></div></div>
+    <div class="account-row"><div><strong>{{ user ? '已登录 · ' + user.email?.split('@')[0] : '本地方案' }}</strong><p>{{ cloudConfigured ? (user ? '下载、上传与云端管理分别操作' : '登录后可在设备间传送已保存方案') : '账号服务待连接，本地方案可正常使用' }}</p></div><div class="account-actions"><el-button v-if="!user" :disabled="!cloudConfigured" @click="authOpen=true">注册 / 登录</el-button><template v-else><el-button :disabled="busy" @click="prepareTransfer('download')">从云端下载</el-button><el-button :disabled="busy || !plans.visible.length" @click="prepareTransfer('upload')">上传到云端</el-button><el-button :disabled="busy" @click="prepareTransfer('delete')">管理云端</el-button><el-button :disabled="busy" @click="logout">退出</el-button></template></div></div>
     <div class="plan-toolbar"><el-button :disabled="busy" @click="startNew">新建方案</el-button><el-button type="primary" :disabled="busy || !dirty" @click="saveCurrent">保存{{ plans.active ? '当前方案' : '新方案' }}</el-button><el-button :disabled="busy || !store.已选流派" @click="saveNew">另存为</el-button><el-button :disabled="busy" @click="fileInput.click()">导入</el-button><el-button :disabled="!plans.visible.length" @click="downloadPlans(plans.visible)">导出已存方案</el-button><el-button :disabled="!store.已选流派" @click="downloadPlans([{name:(plans.active?.name || '新方案')+'（当前配装）',config:store.导出配置()}])">导出当前配装</el-button><input ref="fileInput" type="file" accept=".json,application/json" hidden @change="importFile" /></div>
     <p class="helper-text">{{ plans.active ? `编辑：${plans.active.name}` : '编辑：新方案' }} · {{ dirty ? '有未保存修改' : store.已选流派 ? '已保存' : '请选择流派开始配置' }}。编辑草稿保留在本机，点击保存才更新方案。</p>
     <div class="plan-list"><div v-for="p in plans.visible" :key="p.id" class="plan-item" :class="{selected: p.id === plans.activeId}"><div><strong>{{ p.name }}</strong><small>{{ p.config.配置.流派 }}{{ p.config.配置.变体 }} · {{ new Date(p.updatedAt).toLocaleString('zh-CN') }}</small></div><div class="plan-actions"><el-button size="small" :disabled="busy || (p.id === plans.activeId && !dirty)" @click="load(p)">{{ p.id === plans.activeId ? dirty ? '重新载入' : '使用中' : '切换' }}</el-button><el-button size="small" :disabled="busy" @click="rename(p)">改名</el-button><el-button size="small" :disabled="busy" @click="duplicate(p)">复制已存方案</el-button><el-button size="small" @click="downloadPlans([p], p.name)">导出</el-button><el-button size="small" :disabled="busy" type="danger" plain @click="remove(p)">删除本地</el-button></div></div><el-empty v-if="!plans.visible.length" description="还没有保存的方案" :image-size="60" /></div>
@@ -8,12 +8,13 @@
     <details v-if="plans.items.some(p=>p.deleted)" class="deleted-plans"><summary>已删除的本地方案</summary><div v-for="p in plans.items.filter(p=>p.deleted)" :key="p.id"><span>{{ p.name }}</span><el-button size="small" :disabled="busy" @click="plans.recover(p.id)">恢复</el-button></div></details>
     <template #footer><el-button @click="open=false">完成</el-button></template>
   </el-dialog>
-  <el-dialog v-model="transferOpen" :title="direction === 'download' ? '从云端下载' : '上传到云端'" width="min(600px,94vw)" append-to-body :close-on-click-modal="!busy" :close-on-press-escape="!busy" :show-close="!busy">
-    <p class="helper-text">{{ direction === 'download' ? '下载选中的云端方案；本地不同版本会保留副本，当前编辑内容也会保留。' : '上传选中的已保存方案。当前未保存修改不会上传；标记为覆盖的项会替换云端版本。' }}</p>
+  <el-dialog v-model="transferOpen" :title="transferTitles[direction]" width="min(600px,94vw)" append-to-body :close-on-click-modal="!busy" :close-on-press-escape="!busy" :show-close="!busy">
+    <p class="helper-text">{{ transferHelp[direction] }}</p>
+    <el-button v-if="direction==='delete' || direction==='restore'" size="small" :disabled="busy" @click="setTransferMode(direction==='delete' ? 'restore' : 'delete')">{{ direction==='delete' ? '查看已删除' : '返回云端方案' }}</el-button>
     <el-button size="small" :disabled="busy || !transferItems.length" @click="selectedIds = selectedIds.length === transferItems.length ? [] : transferItems.map(p=>p.id)">{{ selectedIds.length === transferItems.length && transferItems.length ? '取消全选' : '全选' }}</el-button>
-    <div class="transfer-list"><el-checkbox v-for="p in transferItems" :key="p.id" v-model="selectedIds" :label="p.id" :disabled="busy"><div><strong>{{ p.name }}</strong><small>{{ p.config.配置.流派 }}{{ p.config.配置.变体 }} · {{ new Date(p.updatedAt).toLocaleString('zh-CN') }}</small><span :class="{'transfer-warning': transferDifference(p)}">{{ transferDifference(p) || (direction === 'download' ? '下载到本地' : '保存到云端') }}</span></div></el-checkbox><el-empty v-if="!transferItems.length" description="没有可选择的方案" :image-size="60" /></div>
+    <el-checkbox-group v-model="selectedIds" class="transfer-list"><el-checkbox v-for="p in transferItems" :key="p.id" :value="p.id" :disabled="busy"><div><strong>{{ p.name }}</strong><small>{{ p.config.配置.流派 }}{{ p.config.配置.变体 }} · {{ new Date(p.updatedAt).toLocaleString('zh-CN') }}</small><span :class="{'transfer-warning': transferDifference(p)}">{{ transferDifference(p) || transferLabels[direction]+'云端方案' }}</span></div></el-checkbox><el-empty v-if="!transferItems.length" description="没有可选择的方案" :image-size="60" /></el-checkbox-group>
     <p v-if="status" class="helper-text" role="status">{{ status }}</p>
-    <template #footer><el-button :disabled="busy" @click="transferOpen=false">取消</el-button><el-button type="primary" :loading="busy" :disabled="!selectedIds.length" @click="finishTransfer">确认{{ direction === 'download' ? '下载' : '上传' }} {{ selectedIds.length }} 套</el-button></template>
+    <template #footer><el-button :disabled="busy" @click="transferOpen=false">取消</el-button><el-button :type="direction==='delete' ? 'danger' : 'primary'" :loading="busy" :disabled="!selectedIds.length" @click="finishTransfer">确认{{ transferLabels[direction] }} {{ selectedIds.length }} 套</el-button></template>
   </el-dialog>
   <el-dialog v-model="authOpen" :title="register ? '注册账号' : '登录账号'" width="min(400px,94vw)" append-to-body>
     <form class="auth-form" @submit.prevent="authenticate"><el-input v-model="username" :disabled="busy" placeholder="培养助手用户名" aria-label="用户名" autocomplete="username" /><el-input v-model="password" :disabled="busy" type="password" placeholder="密码（至少六位）" aria-label="密码" show-password autocomplete="current-password" /><p v-if="authError" class="error" role="alert">{{ authError }}</p><el-button type="primary" native-type="submit" :loading="busy">{{ register ? '注册' : '登录' }}</el-button><el-button text :disabled="busy" @click="register=!register; authError=''">{{ register ? '已有账号，去登录' : '没有账号，去注册' }}</el-button></form>
@@ -21,15 +22,18 @@
 </template>
 <script setup>
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
-import { ElCheckbox, ElMessage, ElMessageBox } from 'element-plus'
+import { ElCheckbox, ElCheckboxGroup, ElMessage, ElMessageBox } from 'element-plus'
 import { usePlansStore, downloadPlans } from '../stores/plans.js'
 import { useSimulatorStore } from '../stores/simulator.js'
-import { cloudConfigured, getCloud, fetchCloudPlans, uploadCloudPlans } from '../services/cloud.js'
+import { cloudConfigured, getCloud, fetchCloudPlans, uploadCloudPlans, setCloudPlansDeleted } from '../services/cloud.js'
 const open = defineModel({ type: Boolean })
 const plans = usePlansStore(), store = useSimulatorStore()
 const fileInput = ref(null), status = ref(''), user = ref(null), authOpen = ref(false), register = ref(false), username = ref(''), password = ref(''), authError = ref(''), busy = ref(false)
 const dirty = computed(() => plans.hasChanges(store.导出配置()))
 const transferOpen = ref(false), direction = ref('download'), selectedIds = ref([]), transferItems = ref([])
+const transferLabels = { download:'下载', upload:'上传', delete:'删除', restore:'恢复' }
+const transferTitles = { download:'从云端下载', upload:'上传到云端', delete:'管理云端', restore:'管理云端 · 已删除' }
+const transferHelp = { download:'下载选中的云端方案；本地不同版本会保留副本，当前编辑内容也会保留。', upload:'上传选中的已保存方案。当前未保存修改不会上传；标记为覆盖的项会替换云端版本。', delete:'删除选中的云端方案，本地方案与当前草稿保留。误删后可在“已删除”中恢复。', restore:'恢复选中的云端方案后，可以重新从云端下载。' }
 let cloudPreview
 let subscription
 onMounted(async () => {
@@ -70,14 +74,20 @@ async function authenticate() {
 async function logout() { try { const c=await getCloud(); const {error}=await c.auth.signOut(); if(error) throw error; user.value=null; status.value='已退出，本地方案保留在此浏览器' } catch(e) { status.value=e.message } }
 const different = (a,b) => a && !a.deleted && (a.name !== b.name || JSON.stringify(a.config) !== JSON.stringify(b.config))
 function transferDifference(p) {
+  if (direction.value==='delete' || direction.value==='restore') return ''
   const other = direction.value === 'download' ? plans.items.find(local=>local.id===p.id) : cloudPreview.items.find(remote=>remote.id===p.id)
   if (direction.value === 'upload' && other?.deleted) return '将恢复此云端方案'
   return different(other,p) ? direction.value === 'download' ? '本地版本不同，将保留本地副本' : '将覆盖不同的云端版本' : ''
 }
+function setTransferMode(mode) {
+  direction.value=mode
+  transferItems.value=JSON.parse(JSON.stringify(mode==='upload' ? plans.visible : cloudPreview.items.filter(p=>p.deleted===(mode==='restore'))))
+  selectedIds.value=[]; status.value=''
+}
 async function prepareTransfer(mode) {
   if (busy.value) return
   busy.value=true
-  try { cloudPreview=await fetchCloudPlans(); direction.value=mode; transferItems.value=JSON.parse(JSON.stringify(mode==='download' ? cloudPreview.items.filter(p=>!p.deleted) : plans.visible)); selectedIds.value=[]; status.value=''; transferOpen.value=true }
+  try { cloudPreview=await fetchCloudPlans(); setTransferMode(mode); transferOpen.value=true }
   catch(e) { status.value='无法读取云端列表：'+e.message } finally { busy.value=false }
 }
 async function finishTransfer() {
@@ -86,15 +96,20 @@ async function finishTransfer() {
   try {
     if (user.value?.id !== cloudPreview.userId) throw Error('登录账号已变化，请重新打开列表')
     const selected=transferItems.value.filter(p=>selectedIds.value.includes(p.id))
+    if (direction.value==='delete') {
+      try { await ElMessageBox.confirm(`从云端删除 ${selected.length} 套方案：${selected.map(p=>p.name).join('、')}？本地方案与当前草稿保留，删除后可恢复。`, '删除云端方案', {confirmButtonText:'删除云端',cancelButtonText:'取消',type:'warning'}) }
+      catch(reason) { if(reason==='cancel' || reason==='close') return; throw reason }
+    }
     if (direction.value==='download') { const copies=plans.download(selected); if(plans.error)throw Error(plans.error); status.value=`已下载 ${selected.length} 套${copies ? `，保留 ${copies} 套本地副本` : ''}` }
-    else { const count=await uploadCloudPlans(selected,cloudPreview); status.value=`已上传 ${count} 套已保存方案` }
+    else if (direction.value==='upload') { const count=await uploadCloudPlans(selected,cloudPreview); status.value=`已上传 ${count} 套已保存方案` }
+    else { const count=await setCloudPlansDeleted(selected,cloudPreview,direction.value==='delete'); status.value=`已${transferLabels[direction.value]} ${count} 套云端方案` }
     transferOpen.value=false; ElMessage.success(status.value)
-  } catch(e) { status.value='操作未完成：'+e.message; if(direction.value==='upload') { transferOpen.value=false; status.value+='。请重新打开上传列表查看最新版本。' } } finally { busy.value=false }
+  } catch(e) { status.value='操作未完成：'+e.message; if(direction.value!=='download') { transferOpen.value=false; status.value+='。请重新打开列表查看最新版本。' } } finally { busy.value=false }
 }
 defineExpose({ startNew, saveCurrent })
 </script>
 <style scoped>
 .account-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px;background:var(--surface-soft);border-radius:8px}.account-row p{font-size:12px;color:var(--muted);margin:6px 0 0}.plan-toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 10px}.plan-toolbar .el-button,.plan-actions .el-button{margin:0}.plan-list{display:flex;flex-direction:column;gap:10px}.plan-item{padding:14px;border:1px solid var(--border);border-radius:8px}.plan-item.selected{border-color:var(--accent);background:var(--surface-soft)}.plan-item small{display:block;margin:6px 0 12px;color:var(--muted)}.plan-actions{display:flex;flex-wrap:wrap;gap:6px}.auth-form{display:flex;flex-direction:column;gap:16px}.auth-form .el-button{margin:0}.error{color:var(--el-color-danger);font-size:13px}@media(max-width:600px){.account-row{align-items:flex-start;flex-direction:column}}
-.account-actions{display:flex;flex-wrap:wrap;gap:6px;flex-shrink:0}.account-actions .el-button{margin:0}.plan-list{max-height:40dvh;overflow:auto}.transfer-list{display:flex;flex-direction:column;gap:8px;max-height:48dvh;overflow:auto;margin-top:12px}.transfer-list .el-checkbox{height:auto;margin:0;padding:12px;border:1px solid var(--border);border-radius:8px;white-space:normal}.transfer-list strong,.transfer-list small,.transfer-list span{display:block}.transfer-list small{font-size:12px;color:var(--muted);margin:4px 0}.transfer-list span{font-size:12px;color:var(--muted)}.transfer-list .transfer-warning{color:var(--el-color-warning)}
+.account-row{flex-wrap:wrap}.account-actions{display:flex;flex-wrap:wrap;gap:6px;max-width:100%}.account-actions .el-button{margin:0}.plan-list{max-height:40dvh;overflow:auto}.transfer-list{display:flex;flex-direction:column;gap:8px;max-height:48dvh;overflow:auto;margin-top:12px}.transfer-list .el-checkbox{height:auto;margin:0;padding:12px;border:1px solid var(--border);border-radius:8px;white-space:normal}.transfer-list strong,.transfer-list small,.transfer-list span{display:block}.transfer-list small{font-size:12px;color:var(--muted);margin:4px 0}.transfer-list span{font-size:12px;color:var(--muted)}.transfer-list .transfer-warning{color:var(--el-color-warning)}
 .deleted-plans{margin-top:12px;font-size:13px;color:var(--muted)}.deleted-plans summary{cursor:pointer}.deleted-plans>div{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:8px}
 </style>

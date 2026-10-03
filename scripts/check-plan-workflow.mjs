@@ -100,7 +100,7 @@ globalThis.planTestCloud = {
   }
 }
 const cloudSource = (await readFile(new URL('../src/services/cloud.js', import.meta.url), 'utf8')).replaceAll('import.meta.env', '({VITE_SUPABASE_URL:"test",VITE_SUPABASE_ANON_KEY:"test"})').replace('let client', 'let client = globalThis.planTestCloud')
-const { fetchCloudPlans, uploadCloudPlans } = await import('data:text/javascript;base64,' + Buffer.from(cloudSource).toString('base64'))
+const { fetchCloudPlans, uploadCloudPlans, setCloudPlansDeleted } = await import('data:text/javascript;base64,' + Buffer.from(cloudSource).toString('base64'))
 const preview = await fetchCloudPlans()
 assert.equal(writes, 0, '读取云端列表不能触发上传')
 assert.equal(await uploadCloudPlans([b], preview), 1)
@@ -112,6 +112,25 @@ assert.equal(writes, 1)
 userId = 'another-user'
 await assert.rejects(uploadCloudPlans([a], preview), /登录账号已变化/)
 assert.equal(writes, 1)
+userId = 'test-user'
+const deletionPreview = await fetchCloudPlans()
+const localBeforeDeletion = clone(plans.items), draftBeforeDeletion = store.导出配置()
+assert.equal(await setCloudPlansDeleted([a], deletionPreview, true), 1)
+assert.equal(rows.find(p=>p.id===a.id).deleted, true)
+assert.equal(rows.find(p=>p.id===b.id).deleted, false, '删除只能影响所选云端方案')
+assert.deepEqual(clone(plans.items), localBeforeDeletion)
+assert.deepEqual(store.导出配置(), draftBeforeDeletion, '云端删除不能改变本地方案或草稿')
+assert.deepEqual(rows.find(p=>p.id===a.id).config_data, a.config, '可恢复删除必须保留配装内容')
+await assert.rejects(setCloudPlansDeleted([a], deletionPreview, false), /状态已变化/)
+const restorePreview = await fetchCloudPlans()
+assert.equal(await setCloudPlansDeleted([a], restorePreview, false), 1)
+assert.equal(rows.find(p=>p.id===a.id).deleted, false)
+const versionPreview = await fetchCloudPlans()
+rows[0].updated_at = '2099-01-02T00:00:00.000Z'
+await assert.rejects(setCloudPlansDeleted([a], versionPreview, true), /云端版本已变化/)
+userId = 'another-user'
+await assert.rejects(setCloudPlansDeleted([a], versionPreview, true), /登录账号已变化/)
+assert.equal(writes, 3)
 delete globalThis.planTestCloud
 if (process.argv[2]) await writeFile(process.argv[2], JSON.stringify({ 方案版本: 1, 方案: [a,b] }))
-console.log('通过：草稿隔离与刷新、新建、显式保存、复制、导入、本地删除、下载保留副本、无效下载、保存失败、单向云端操作、选择上传与并发/账号冲突。')
+console.log('通过：草稿隔离与刷新、新建、显式保存、复制、导入、本地删除恢复、下载保留副本、无效下载、保存失败、单向云端操作、选择上传、云端删除恢复与并发/账号冲突。')
