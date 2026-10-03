@@ -13,13 +13,18 @@ function 建全部装备() { return Object.fromEntries(部位顺序.map(s => [s,
 // 配装导入、装备弹窗共用这些实际游戏约束。
 export function 整理装备(装备, 部位, 流派, 变体) {
   const out = 建空白装备()
-  out.承音 = 装备?.承音 === true
+  const 清除防具定音 = ['头', '胸', '胫甲', '腕甲'].includes(部位) && 装备?.定音?.名称 && !取词条池('定音', 部位, 流派, 变体).includes(规范词条名称(装备.定音.名称))
+  out.承音 = 装备?.承音 === true && !清除防具定音
   const used = new Set()
   let 属性攻击数 = 0
   for (const 槽位 of Object.values(词条槽)) {
+    // 定音库精简后，旧方案只清除失效定音，五音仍保留；承音退回原值。
+    if (槽位 === '定音' && 清除防具定音) continue
     const old = 装备?.[槽位]
     const item = old && { ...old, 名称: 规范词条名称(old.名称) }
     if (!item?.名称) continue
+    const 承音前 = 装备?.承音前数值?.[槽位]
+    if (清除防具定音 && 装备.承音 && 五音槽位.includes(槽位) && 规范词条名称(承音前?.名称) === item.名称 && Number.isFinite(承音前?.值)) item.值 = 承音前.值
     if (是防御属性(item.名称)) continue
     if (!取词条池(槽位, 部位, 流派, 变体).includes(item.名称)) throw Error(`${部位}·${槽位}：${item.名称} 不在当前词条池中`)
     if (!Number.isFinite(item.值)) throw Error(`${部位}·${槽位}：请输入有效数值`)
