@@ -19,11 +19,13 @@ ALIASES = {"无名剑法": "无名心法", "霜天百夜": "霜天白夜"}
 
 
 def is_defensive(name):
+    if name == "明川药典·治疗技增疗":
+        return False
     return name in ["体", "御"] or bool(re.search(r"气血|防御|抗性|护盾|治疗|增疗|减伤", name))
 
 
 def offensive_data(data):
-    """本工具只保留攻击属性；每次同步也执行，避免防御项重新进入数值库。"""
+    """保留攻击属性和牵丝霖治疗技定音；同步时剔除其他防御项。"""
     def stats(attrs):
         return {k: v for k, v in attrs.items() if not is_defensive(k)}
     for group, attrs in data["基础属性"]["基础来源"].items():
@@ -581,7 +583,7 @@ def main():
                               "未列心法保留并标注；无固定面板加成且未记品质的心法不猜测品质",
                               "破竹樽已接入拳甲、双刀与倾觞；防具定音暂仅记录悬身断水·浓醺技能增伤",
                               "心法的本流派表示专属归属；换流派装备该心法不会自动改变其品质数值"]
-        data["装备词条"]["元数据"]["说明"] = "范围与承音采用记录表最后一页；只保留攻击属性。冠胄、胸甲神力统一为全奇术增伤。"
+        data["装备词条"]["元数据"]["说明"] = "范围与承音采用记录表最后一页；保留攻击属性及牵丝霖的明川药典·治疗技增疗定音。冠胄、胸甲神力统一为全奇术增伤。"
     else:
         metadata["基础攻击口径"] = "DIY 基础攻击已含装备白值与叠音；武器套装只加额外效果；默认本系武库"
     for line in differences(before, data):

@@ -34,13 +34,13 @@ export function 取面板展示(state) {
     return { key, value: raw[key] || 0, effective, max, whiteCap, overflow: Math.max(0, (raw[key] || 0) - whiteCap), ratio, color: 进度颜色(ratio) }
   })
   const direct = ['直接会心率', '直接会意率'].filter(key => raw[key]).map(key => ({ key, value: raw[key] }))
-  const modifiers = Object.keys(raw).filter(key => raw[key] && (/穿透|加成|增伤|增效/.test(key)) && !['会心伤害加成', '会意伤害加成', '无相穿透', `${panel.本系属性}伤害加成`].includes(key)).map(key => {
+  const modifiers = Object.keys(raw).filter(key => raw[key] && (/穿透|加成|增伤|增效|增疗/.test(key)) && !['会心伤害加成', '会意伤害加成', '无相穿透', `${panel.本系属性}伤害加成`].includes(key)).map(key => {
     let max = 装备属性上限(key, state.流派, state.变体)
     if (key === `${panel.本系属性}穿透`) {
       max += (base[key] || 0) + 装备属性上限('无相穿透', state.流派, state.变体)
     }
     const [schoolName, moveName] = key.includes('·') ? key.split('·') : ['', key]
-    return { key, schoolName, moveName, value: raw[key], effective: panel.增益有效面板[key], max, ratio: max ? 进度(raw[key], max) : 100, percent: 是百分比词条(key) || /加成|增伤|增效/.test(key) }
+    return { key, schoolName, moveName, value: raw[key], effective: panel.增益有效面板[key], max, ratio: max ? 进度(raw[key], max) : 100, percent: 是百分比词条(key) || /加成|增伤|增效|增疗/.test(key) }
   })
   return { panel, raw, attacks, rates, direct, modifiers }
 }
