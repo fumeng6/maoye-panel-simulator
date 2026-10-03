@@ -8,16 +8,41 @@ export async function getCloud() {
   }
   return client
 }
-export async function syncPlans(plans) {
-  const cloud = await getCloud()
-  const { data: { user }, error: authError } = await cloud.auth.getUser()
-  if (authError) throw authError
-  if (!user) throw Error('请先登录')
-  const { data, error } = await cloud.from('panel_simulator_plans').select('*')
+async function currentUser(cloud) {
+  const { data: { user }, error } = await cloud.auth.getUser()
   if (error) throw error
-  plans.merge(data.map(p => ({ id: p.id, name: p.name, config: p.config_data, updatedAt: p.updated_at, deleted: p.deleted })))
-  if (plans.items.length) {
-    const { error: uploadError } = await cloud.from('panel_simulator_plans').upsert(plans.items.map(p => ({ user_id: user.id, id: p.id, name: p.name, config_data: p.config, updated_at: p.updatedAt, deleted: p.deleted })))
-    if (uploadError) throw uploadError
+  if (!user) throw Error('请先登录')
+  return user
+}
+export async function fetchCloudPlans() {
+  const cloud = await getCloud()
+  const user = await currentUser(cloud)
+  const { data, error } = await cloud.from('panel_simulator_plans').select('*').eq('user_id', user.id)
+  if (error) throw error
+  return { userId: user.id, items: data.map(p => ({ id: p.id, name: p.name, config: p.config_data, updatedAt: p.updated_at, deleted: p.deleted })) }
+}
+export async function uploadCloudPlans(plans, preview) {
+  const cloud = await getCloud()
+  const user = await currentUser(cloud)
+  if (user.id !== preview.userId) throw Error('登录账号已变化，请重新打开上传列表')
+  let uploaded = 0
+  try {
+    for (const p of plans) {
+      const previous = preview.items.find(remote => remote.id === p.id)
+      const row = { user_id: user.id, id: p.id, name: p.name, config_data: p.config, updated_at: new Date().toISOString(), deleted: false }
+      if (previous) {
+        // 只覆盖用户预览过的版本，避免另一台设备刚保存的方案被旧页面覆盖。
+        const { data, error } = await cloud.from('panel_simulator_plans').update(row).eq('user_id', user.id).eq('id', p.id).eq('updated_at', previous.updatedAt).select('id')
+        if (error) throw error
+        if (!data.length) throw Error(`“${p.name}”的云端版本已变化，请重新查看云端列表`)
+      } else {
+        const { error } = await cloud.from('panel_simulator_plans').insert(row)
+        if (error) throw Error(error.code === '23505' ? `“${p.name}”已在云端出现，请重新查看云端列表` : error.message)
+      }
+      uploaded++
+    }
+  } catch (e) {
+    throw Error(`已上传 ${uploaded} 套，其余未完成：${e.message}`)
   }
+  return uploaded
 }

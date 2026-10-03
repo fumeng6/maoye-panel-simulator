@@ -14,17 +14,21 @@ export const usePlansStore = defineStore('plans', {
       try { localStorage.setItem(key, JSON.stringify({ items: this.items, activeId: this.activeId })); this.error = '' }
       catch { this.error = '浏览器无法保存，请导出方案' }
     },
-    save(name, config) {
+    save(name, config, activate = true) {
       const plan = { id: crypto.randomUUID(), name: name.trim() || '未命名方案', config: copy(config), updatedAt: new Date().toISOString(), deleted: false }
-      this.items.push(plan); this.activeId = plan.id; this.persist(); return plan
+      this.items.push(plan); if (activate) this.activeId = plan.id; this.persist(); return plan
     },
+    hasChanges(config) { return Boolean(config.配置.流派) && (Boolean(this.error) || !this.active || JSON.stringify(this.active.config) !== JSON.stringify(config)) },
     updateCurrent(config) {
       const plan = this.active
-      if (plan && JSON.stringify(plan.config) !== JSON.stringify(config)) { plan.config = copy(config); plan.updatedAt = new Date().toISOString(); this.persist() }
+      if (!plan) return
+      if (JSON.stringify(plan.config) !== JSON.stringify(config)) { plan.config = copy(config); plan.updatedAt = new Date().toISOString() }
+      this.persist()
     },
     select(id) { this.activeId = id; this.persist() },
     rename(id, name) { const p = this.items.find(p => p.id === id); p.name = name.trim() || p.name; p.updatedAt = new Date().toISOString(); this.persist() },
     remove(id) { const p = this.items.find(p => p.id === id); p.deleted = true; p.updatedAt = new Date().toISOString(); if (this.activeId === id) this.activeId = ''; this.persist() },
+    recover(id) { const p = this.items.find(p => p.id === id); p.deleted = false; p.updatedAt = new Date().toISOString(); this.persist() },
     importFile(file) {
       const incoming = file.方案版本 === 1 ? file.方案 : [{ name: '导入配装', config: file }]
       if (!Array.isArray(incoming) || !incoming.length) throw Error('文件中没有可导入的方案')
@@ -32,16 +36,23 @@ export const usePlansStore = defineStore('plans', {
       for (const p of validated) this.items.push({ ...p, id: crypto.randomUUID(), updatedAt: new Date().toISOString(), deleted: false })
       this.persist(); return validated.length
     },
-    merge(remote) {
-      const merged = new Map(this.items.map(p => [p.id, p]))
-      for (const p of remote) {
-        if (!p.deleted) 整理配置(p.config)
-        const local = merged.get(p.id)
-        if (!local || Date.parse(p.updatedAt) > Date.parse(local.updatedAt)) merged.set(p.id, p)
+    download(remote) {
+      // 先全部验证，任何一项无效都不修改本地方案。
+      const incoming = remote.filter(p => !p.deleted).map(p => ({ ...copy(p), config: { 格式版本: 1, 配置: 整理配置(p.config) } }))
+      let copies = 0
+      for (const p of incoming) {
+        const index = this.items.findIndex(local => local.id === p.id)
+        const local = this.items[index]
+        if (local && !local.deleted && (local.name !== p.name || JSON.stringify(local.config) !== JSON.stringify(p.config))) {
+          const backup = this.save(`${local.name}（下载前本地副本）`, local.config, false)
+          if (this.activeId === local.id) this.activeId = backup.id
+          copies++
+        }
+        if (index < 0) this.items.push(p)
+        else this.items[index] = p
       }
-      this.items = [...merged.values()]
-      if (!this.active) this.activeId = ''
       this.persist()
+      return copies
     }
   }
 })
