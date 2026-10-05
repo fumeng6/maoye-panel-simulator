@@ -1,11 +1,12 @@
 <template>
   <div class="app-stage" :class="{ 'layout-fill': fillScreen }"><BackgroundScene :mode="background" /><div class="app-container">
-    <header class="app-header"><div class="logo"><h1>燕云面板模拟器</h1><span>{{ 数据.元数据.数据版本 }}</span></div><div class="header-actions"><el-button aria-label="切换夜间模式" :aria-pressed="dark" @click="dark=!dark"><el-icon><component :is="dark ? Sunny : Moon" /></el-icon></el-button><el-dropdown trigger="click" @command="background=$event"><el-button aria-label="背景设置" :title="backgroundModes.find(mode => mode.key === background)?.label"><el-icon><Picture /></el-icon><span class="background-label">背景</span></el-button><template #dropdown><el-dropdown-menu><el-dropdown-item v-for="mode in backgroundModes" :key="mode.key" :command="mode.key" :class="{ 'background-selected': background === mode.key }">{{ background === mode.key ? '✓ ' : '' }}{{ mode.label }}</el-dropdown-item></el-dropdown-menu></template></el-dropdown><el-button v-if="!isMobile" :aria-label="fillScreen ? '切换为最佳尺寸' : '切换为铺满屏幕'" :aria-pressed="fillScreen" @click="fillScreen=!fillScreen"><el-icon><component :is="fillScreen ? ScaleToOriginal : FullScreen" /></el-icon><span class="size-label">{{ fillScreen ? '铺满屏幕' : '最佳尺寸' }}</span></el-button><el-button @click="plansOpen=true">方案管理</el-button></div></header>
+    <header class="app-header"><div class="logo"><h1>燕云面板模拟器</h1><span>{{ 数据.元数据.数据版本 }}</span></div><div class="header-actions"><el-button aria-label="切换夜间模式" :aria-pressed="dark" @click="dark=!dark"><el-icon><component :is="dark ? Sunny : Moon" /></el-icon></el-button><el-dropdown trigger="click" @command="background=$event"><el-button aria-label="背景设置" :title="backgroundModes.find(mode => mode.key === background)?.label"><el-icon><Picture /></el-icon><span class="background-label">背景</span></el-button><template #dropdown><el-dropdown-menu><el-dropdown-item v-for="mode in backgroundModes" :key="mode.key" :command="mode.key" :class="{ 'background-selected': background === mode.key }">{{ background === mode.key ? '✓ ' : '' }}{{ mode.label }}</el-dropdown-item></el-dropdown-menu></template></el-dropdown><el-button v-if="!isMobile" :aria-label="fillScreen ? '切换为最佳尺寸' : '切换为铺满屏幕'" :aria-pressed="fillScreen" @click="fillScreen=!fillScreen"><el-icon><component :is="fillScreen ? ScaleToOriginal : FullScreen" /></el-icon><span class="size-label">{{ fillScreen ? '铺满屏幕' : '最佳尺寸' }}</span></el-button><el-button aria-label="方案管理" @click="plansOpen=true">方案管理</el-button></div></header>
     <section class="config-strip" aria-label="配装选择">
-      <button class="school-trigger" @click="schoolOpen=true"><small>武学流派</small><strong>{{ store.已选流派 ? store.流派+store.变体 : '选择流派' }}</strong><span>⌄</span></button>
-      <div class="heart-config"><button class="heart-trigger" :disabled="!store.已选流派" @click="heartOpen=true">心法 <span>⌄</span></button><div class="heart-results"><button v-for="book in store.心法列表" :key="book" :class="qualityClass(book)" @click="heartOpen=true">{{ book }}</button><span v-if="!store.心法列表.length" class="placeholder">未选择</span></div></div>
-      <label v-for="category in setCategories" :key="category.key" class="set-config"><small>{{ category.label }}</small><el-select v-model="store.套装选择[category.key]" :disabled="!store.已选流派" clearable placeholder="未选择" :aria-label="category.label" popper-class="set-options"><template #label="{ label, value }"><span class="set-selection"><span>{{ label }}</span><small v-if="!isMobile">{{ setBonus(取套装(category.key, value)) }}</small></span></template><el-option v-for="s in 取套装列表(category.key)" :key="s.键" :label="s.名称" :value="s.键"><strong>{{ s.名称 }}</strong><small>两件套 · {{ setBonus(s) }}</small></el-option></el-select></label>
-      <div class="workspace-config"><div class="workspace-info"><span class="workspace-name" :title="plans.active?.name || '新方案草稿'">{{ plans.active?.name || '新方案草稿' }}</span><span class="workspace-state" :class="{dirty}">{{ dirty ? '未保存修改' : store.已选流派 ? '已保存' : '开始新配装' }}</span></div><div class="workspace-actions"><el-button size="small" @click="planManager.startNew()">新建方案</el-button><el-button size="small" type="primary" :disabled="!dirty" @click="planManager.saveCurrent()">保存方案</el-button></div></div>
+      <button class="school-trigger" :class="{ 'is-empty': !store.已选流派 }" @click="schoolOpen=true"><small v-if="!isMobile">武学流派</small><strong>{{ store.已选流派 ? store.流派+store.变体 : '选择流派' }}</strong><span v-if="!isMobile">⌄</span></button>
+      <div class="heart-config"><button v-if="!store.心法列表.length" class="heart-trigger" :disabled="!store.已选流派" @click="heartOpen=true">选择心法 <span>⌄</span></button><div v-else class="heart-results"><button v-for="book in store.心法列表" :key="book" :class="qualityClass(book)" :aria-label="`配置心法：${book}`" @click="heartOpen=true">{{ book }}</button></div></div>
+      <div class="sets-configs"><label v-for="category in setCategories" :key="category.key" class="set-config" :class="category.key==='弓决' ? 'bow-config' : 'weapon-config'"><small>{{ isMobile && category.key==='武器' ? '武器' : category.label }}</small><el-select v-model="store.套装选择[category.key]" :disabled="!store.已选流派" clearable placeholder="未选择" :aria-label="category.label" popper-class="set-options"><template #label="{ label, value }"><span class="set-selection"><span>{{ isMobile ? label.replace(/^弓玦·/, '') : label }}</span><small v-if="!isMobile">{{ setBonus(取套装(category.key, value)) }}</small></span></template><el-option v-for="s in 取套装列表(category.key)" :key="s.键" :label="s.名称" :value="s.键"><strong>{{ s.名称 }}</strong><small>两件套 · {{ setBonus(s) }}</small></el-option></el-select></label></div>
+      <div v-if="!isMobile" class="workspace-config"><div class="workspace-info"><span class="workspace-name" :title="plans.active?.name || '新方案草稿'">{{ plans.active?.name || '新方案草稿' }}</span><span class="workspace-state" :class="{dirty}">{{ dirty ? '未保存修改' : store.已选流派 ? '已保存' : '开始新配装' }}</span></div><div class="workspace-actions"><el-button size="small" @click="planManager.startNew()">新建方案</el-button><el-button size="small" type="primary" :disabled="!dirty" @click="planManager.saveCurrent()">保存方案</el-button></div></div>
+      <div v-else class="mobile-workspace"><span class="workspace-name" :title="plans.active?.name || '新方案草稿'">{{ plans.active?.name || '新方案草稿' }}</span><div class="mobile-workspace-actions"><el-button size="small" :type="dirty ? 'primary' : ''" :class="{ 'has-changes': dirty }" :disabled="!dirty" @click="planManager.saveCurrent()">保存修改</el-button><el-button size="small" @click="planManager.startNew()">新建方案</el-button></div></div>
     </section>
     <main class="main-grid"><section v-show="!isMobile || currentPage==='panel'" class="module-card"><AttributePanel @choose-school="schoolOpen=true" /></section><section v-show="!isMobile || currentPage!=='panel'" class="module-card"><EquipmentManager :group="isMobile ? (currentPage==='armor' ? 'armor' : 'weapons') : 'all'" /></section></main>
     <SchoolSelector v-model:school-open="schoolOpen" v-model:heart-open="heartOpen" /><PlanManager ref="planManager" v-model="plansOpen" />
@@ -80,4 +81,35 @@ watch([()=>store.$state,()=>plans.activeId],saveDraft,{deep:true,flush:'post'})
 @media(max-width:1023px){.workspace-config{grid-column:1 / -1;height:38px;padding:5px 8px;flex-direction:row;align-items:center;justify-content:space-between;gap:8px}.workspace-info{flex:1}.workspace-actions{flex:none}.workspace-actions .el-button{font-size:11px;padding:5px 7px}}
 .layout-fill{padding:12px}.layout-fill .app-container{width:100%;height:calc(100dvh - 24px);border-radius:16px}
 @media(max-width:1023px){.background-label{display:none}.layout-fill{padding:0}.layout-fill .app-container{height:100dvh;border-radius:0}}
+.heart-config{justify-content:center}
+.sets-configs{display:contents}
+@media(max-width:1023px){
+  .config-strip{grid-template-columns:78px minmax(0,1.5fr) minmax(90px,1fr);grid-template-rows:auto auto;grid-template-areas:"school hearts sets" "plan plan plan";gap:5px;padding:6px;align-items:stretch;background:var(--surface)}
+  .school-trigger,.heart-config,.sets-configs{height:auto;min-height:60px;border:1px solid var(--border);border-radius:9px;background:var(--surface)}
+  .school-trigger{grid-area:school;padding:4px;display:flex;align-items:center;justify-content:center;text-align:center}
+  .school-trigger strong{font-size:16px;line-height:22px;white-space:nowrap}
+  .school-trigger.is-empty strong{font-size:12px}
+  .heart-config{grid-area:hearts;padding:4px 3px;gap:0}
+  .heart-trigger{width:100%;min-height:44px;padding:4px;text-align:center;font-size:12px;color:var(--text)}
+  .heart-results{width:100%;gap:3px}
+  .heart-results button{padding:3px 1px;font-size:12px;line-height:16px;font-weight:650}
+  .heart-results button:only-child{grid-column:1 / -1}
+  .sets-configs{grid-area:sets;display:flex;flex-direction:column;justify-content:center;padding:2px 4px;gap:1px;min-width:0}
+  .set-config{height:auto;min-height:27px;padding:0;border:0;border-radius:0;background:var(--surface);flex-direction:row;align-items:center;gap:3px}
+  .set-config>small{font-size:11px;line-height:18px;flex:none;white-space:nowrap;color:var(--muted)}
+  .set-config .el-select{flex:1;min-width:0;--el-component-size:27px}
+  .set-config :deep(.el-select__wrapper){padding:1px 2px;gap:2px;min-height:27px;background:var(--surface);box-shadow:none}
+  .set-config :deep(.el-select__wrapper.is-focused){box-shadow:0 0 0 1px var(--el-color-primary) inset}
+  .set-config :deep(.el-select__caret){font-size:12px}
+  .set-config :deep(.el-select__placeholder){font-size:14px;font-weight:650;color:var(--text-strong);text-align:center}
+  .set-config :deep(.el-select__placeholder.is-transparent){font-size:12px;font-weight:400;color:var(--muted)}
+  .set-selection{width:100%;justify-content:center;font-size:14px;font-weight:650;line-height:20px}
+  .mobile-workspace{grid-area:plan;min-width:0;display:flex;align-items:center;gap:8px;padding:5px 2px 0;border-top:1px solid var(--border)}
+  .mobile-workspace .workspace-name{font-size:13px;line-height:18px}
+  .mobile-workspace-actions{display:flex;flex:none;gap:5px}
+  .mobile-workspace-actions .el-button{min-height:30px;margin:0;padding:5px 8px;font-size:12px}
+  .mobile-workspace-actions .el-button.has-changes{font-weight:700;box-shadow:0 0 0 2px var(--el-color-primary-light-8)}
+}
+@media(max-width:359px){.heart-results button{font-size:11px}}
+
 </style>

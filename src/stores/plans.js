@@ -27,8 +27,7 @@ export const usePlansStore = defineStore('plans', {
     },
     select(id) { this.activeId = id; this.persist() },
     rename(id, name) { const p = this.items.find(p => p.id === id); p.name = name.trim() || p.name; p.updatedAt = new Date().toISOString(); this.persist() },
-    remove(id) { const p = this.items.find(p => p.id === id); p.deleted = true; p.updatedAt = new Date().toISOString(); if (this.activeId === id) this.activeId = ''; this.persist() },
-    recover(id) { const p = this.items.find(p => p.id === id); p.deleted = false; p.updatedAt = new Date().toISOString(); this.persist() },
+    remove(id) { this.items = this.items.filter(p => p.id !== id); if (this.activeId === id) this.activeId = ''; this.persist() },
     importFile(file) {
       const incoming = file.方案版本 === 1 ? file.方案 : [{ name: '导入配装', config: file }]
       if (!Array.isArray(incoming) || !incoming.length) throw Error('文件中没有可导入的方案')

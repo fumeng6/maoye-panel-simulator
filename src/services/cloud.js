@@ -46,21 +46,20 @@ export async function uploadCloudPlans(plans, preview) {
   }
   return uploaded
 }
-export async function setCloudPlansDeleted(plans, preview, deleted) {
+export async function deleteCloudPlans(plans, preview) {
   const cloud = await getCloud()
   const user = await currentUser(cloud)
   if (user.id !== preview.userId) throw Error('登录账号已变化，请重新打开云端管理')
-  const action = deleted ? '删除' : '恢复'
   let changed = 0
   try {
     for (const p of plans) {
       const previous = preview.items.find(remote => remote.id === p.id)
-      if (!previous || previous.deleted === deleted) throw Error(`“${p.name}”状态已变化，请重新查看云端列表`)
-      const { data, error } = await cloud.from('panel_simulator_plans').update({ deleted, updated_at: new Date().toISOString() }).eq('user_id', user.id).eq('id', p.id).eq('updated_at', previous.updatedAt).select('id')
+      if (!previous) throw Error(`“${p.name}”状态已变化，请重新查看云端列表`)
+      const { data, error } = await cloud.from('panel_simulator_plans').delete().eq('user_id', user.id).eq('id', p.id).eq('updated_at', previous.updatedAt).select('id')
       if (error) throw error
       if (!data.length) throw Error(`“${p.name}”的云端版本已变化，请重新查看云端列表`)
       changed++
     }
-  } catch (e) { throw Error(`已${action} ${changed} 套，其余未完成：${e.message}`) }
+  } catch (e) { throw Error(`已删除 ${changed} 套，其余未完成：${e.message}`) }
   return changed
 }

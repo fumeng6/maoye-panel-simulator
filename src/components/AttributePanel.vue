@@ -5,7 +5,7 @@
     <template v-else>
       <div v-if="view === 'chart'" class="chart-view">
         <section class="attack-chart"><div class="section-caption"><h3>攻击</h3><div v-if="data.attacks.length > 2" class="pager"><button aria-label="上一组攻击" :disabled="attackPage === 0" @click="attackPage--">‹</button><span>{{ attackPage + 1 }}/{{ Math.ceil(data.attacks.length / 2) }}</span><button aria-label="下一组攻击" :disabled="(attackPage + 1) * 2 >= data.attacks.length" @click="attackPage++">›</button></div></div>
-          <div class="attack-items"><div v-for="item in shownAttacks" :key="item.key" class="attack-item"><div class="metric-line"><span>{{ item.key }}攻击</span><strong class="attack-numbers" :class="{ absorbed: item.absorbedMin || item.absorbedMax, inverted: item.min > item.max }" :title="item.absorbedMin || item.absorbedMax ? '括号为已计入总值的无相攻击贡献' : undefined"><span><small v-if="item.min > item.max">最小</small>{{ 整数(item.min) }}<b v-if="item.absorbedMin">(+{{ 整数(item.absorbedMin) }})</b></span><i>{{ item.min > item.max ? "/" : "～" }}</i><span><small v-if="item.min > item.max">最大</small>{{ 整数(item.max) }}<b v-if="item.absorbedMax">(+{{ 整数(item.absorbedMax) }})</b></span></strong></div><div class="attack-scale"><div v-if="item.min > item.max" class="inverted-tracks" aria-label="攻击下限高于上限，分别展示最小和最大攻击"><div><i :style="{ width: item.min / attackScale * 100 + '%' }"></i></div><div><i :style="{ width: item.max / attackScale * 100 + '%' }"></i></div></div><div v-else class="range-track"><div class="range-bar" :style="{ left: Math.min(item.min, item.max) / attackScale * 100 + '%', width: Math.max(.5, Math.abs(item.max - item.min) / attackScale * 100) + '%' }"></div></div></div></div>
+          <div class="attack-items"><div v-for="item in shownAttacks" :key="item.key" class="attack-item"><div class="metric-line"><span>{{ item.key }}攻击</span><strong class="attack-numbers" :class="{ absorbed: item.absorbedMin || item.absorbedMax, inverted: item.min > item.max }" :title="item.absorbedMin || item.absorbedMax ? '括号为已计入总值的无相攻击贡献' : undefined"><span><small v-if="item.min > item.max">最小</small>{{ 整数(item.min) }}<b v-if="item.absorbedMin">(⊃{{ 整数(item.absorbedMin) }})</b></span><i>{{ item.min > item.max ? "/" : "～" }}</i><span><small v-if="item.min > item.max">最大</small>{{ 整数(item.max) }}<b v-if="item.absorbedMax">(⊃{{ 整数(item.absorbedMax) }})</b></span></strong></div><div class="attack-scale"><div v-if="item.min > item.max" class="inverted-tracks" aria-label="攻击下限高于上限，分别展示最小和最大攻击"><div><i :style="{ width: item.min / attackScale * 100 + '%' }"></i></div><div><i :style="{ width: item.max / attackScale * 100 + '%' }"></i></div></div><div v-else class="range-track"><div class="range-bar" :style="{ left: Math.min(item.min, item.max) / attackScale * 100 + '%', width: Math.max(.5, Math.abs(item.max - item.min) / attackScale * 100) + '%' }"></div></div></div></div>
         </div></section>
         <section class="rates-chart"><div class="section-caption"><h3>判定属性</h3></div><div class="rate-rings"><div v-for="item in data.rates" :key="item.key" class="rate-ring" :title="`${item.key}上限 ${item.max}%`"><svg viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="33" fill="none" stroke="var(--track)" stroke-width="6"/><circle cx="40" cy="40" r="33" fill="none" :stroke="item.color" stroke-width="6" stroke-linecap="round" pathLength="100" :stroke-dasharray="`${item.ratio} 100`" transform="rotate(-90 40 40)"/></svg><strong class="effective">{{ item.effective >= item.max ? item.max + '%' : 百分比(item.effective) }}</strong><span>白字{{ item.key }}</span><small>{{ 百分比(item.value) }}<em v-if="item.overflow" class="rate-overflow">(⇧{{ 百分比(item.overflow) }})</em></small></div></div><div v-if="data.direct.length" class="direct-rates"><span v-for="item in data.direct" :key="item.key">{{ item.key }} <strong class="effective">{{ 百分比(item.value) }}</strong></span></div></section>
         <section class="modifiers-chart"><div class="section-caption"><h3>增伤与穿透</h3><div v-if="data.modifiers.length > modifierPageSize" class="pager"><button aria-label="上一组增伤与穿透" :disabled="modifierPage === 0" @click="modifierPage--">‹</button><span>{{ modifierPage + 1 }}/{{ Math.ceil(data.modifiers.length / modifierPageSize) }}</span><button aria-label="下一组增伤与穿透" :disabled="(modifierPage + 1) * modifierPageSize >= data.modifiers.length" @click="modifierPage++">›</button></div></div>
@@ -106,4 +106,67 @@ watch(() => [store.流派, store.变体, data.value.modifiers.length, modifierPa
 @media(max-width:1023px){.chart-view{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;padding-bottom:2px}.modifier-grid{grid-template-rows:repeat(3,38px);row-gap:6px}}
 @media(max-width:1023px) and (max-height:720px){.chart-view{gap:2px}.modifier-grid{grid-template-rows:repeat(3,34px);row-gap:6px}}
 @media(min-width:1024px) and (max-height:820px){.chart-view{gap:8px}}
+/* 使用面板实际高度适配，选择栏和手机浏览器占用的空间也会计入。 */
+@media(max-width:1023px){
+  .attribute-panel-root{container:combat-panel / size;gap:clamp(3px,.6dvh,8px)}
+  .chart-view{--ring-size:clamp(44px,15cqh,82px);gap:clamp(3px,1.8cqh,16px);overflow-y:auto;padding-bottom:0}
+  .section-caption{min-height:24px;margin-bottom:clamp(3px,1cqh,8px)}
+  .rates-chart>.section-caption{display:flex}
+  .attack-chart,.rates-chart,.modifiers-chart{flex:none}
+  .attack-item{margin-bottom:0}
+  .attack-item .metric-line{gap:clamp(3px,1cqh,6px)}
+  .attack-scale{height:6px;margin-top:clamp(3px,1cqh,7px)}
+  .range-track{height:4px}
+  .rate-ring svg{width:var(--ring-size);height:var(--ring-size)}
+  .rate-ring>strong{top:calc(var(--ring-size) / 2);transform:translateY(-50%);font-size:clamp(13px,3.4cqh,18px)}
+  .rate-ring>span{font-size:12px;line-height:15px;margin-top:2px}
+  .rate-ring small,.rate-ring .rate-overflow{font-size:11px;line-height:13px;margin-top:2px}
+  .direct-rates{font-size:12px;line-height:16px;margin-top:clamp(3px,1cqh,8px);gap:3px 12px}
+  .direct-rates strong{font-size:13px}
+  .modifier-grid{grid-template-rows:repeat(3,clamp(32px,8.5cqh,42px));row-gap:clamp(3px,1cqh,7px)}
+  .modifier-school{min-height:13px;line-height:13px}
+  .modifier .metric-line>span{line-height:14px}
+  .modifier-number{line-height:15px}
+  .mini-track{height:3px;margin-top:3px}
+  .dimension-strip{margin-top:auto;padding-top:clamp(4px,1cqh,9px)}
+  @container combat-panel (max-height:520px){
+    .section-caption h3{display:none}
+    .section-caption{min-height:0;margin-bottom:0}
+    .section-caption:not(:has(.pager)){display:none}
+    .attack-chart>.section-caption:has(.pager),.modifiers-chart>.section-caption:has(.pager){height:20px;min-height:0;margin-bottom:3px;justify-content:flex-end}
+    .pager{font-size:11px;gap:4px}
+    .pager button{width:22px;min-width:22px;height:20px;min-height:20px;padding:0;font-size:16px;line-height:1}
+    .chart-view{gap:clamp(2px,1cqh,5px);--ring-size:clamp(44px,14cqh,72px)}
+    .rate-ring small,.rate-ring .rate-overflow{font-size:10px;line-height:12px}
+  }
+  @container combat-panel (max-height:340px){
+    .chart-view{--ring-size:44px;gap:2px}
+    .view-toggle{padding:2px}
+    .view-toggle button{padding:4px 10px;min-height:26px}
+    .attack-item .metric-line{gap:2px}
+    .attack-numbers{line-height:20px}
+    .attack-scale{margin-top:3px}
+    .rate-ring>strong{font-size:12px}
+    .rate-ring>span{line-height:14px;margin-top:0}
+    .rate-ring small{margin-top:0}
+    .direct-rates{gap:2px 8px;margin-top:3px;font-size:11px;line-height:14px}
+    .direct-rates strong{font-size:12px;margin-left:3px}
+    .modifier-grid{grid-template-rows:repeat(3,30px);row-gap:3px}
+    .modifier-school{min-height:11px;line-height:11px;font-size:10px}
+    .modifier .metric-line>span{line-height:13px}
+    .modifier-number{font-size:11px;line-height:14px}
+    .mini-track{height:2px;margin-top:2px}
+    .dimension-strip{padding-top:4px;font-size:12px}
+    .dimension-strip strong{font-size:14px}
+    /* 矮屏分页按钮共用首行文字的高度，不额外挤占词条行。 */
+    .attack-chart,.modifiers-chart{position:relative}
+    .attack-chart>.section-caption:has(.pager),.modifiers-chart>.section-caption:has(.pager){height:0;margin:0;position:static}
+    .section-caption .pager{position:absolute;top:0;right:0}
+    .section-caption .pager button{height:18px;min-height:18px}
+    .attack-chart:has(.pager) .attack-item:last-child .metric-line>span{max-width:calc(100% - 64px)}
+    .modifiers-chart:has(.pager) .modifier-grid{grid-template-rows:36px 30px 30px;row-gap:2px}
+    .modifiers-chart:has(.pager) .modifier:nth-child(-n+2) .modifier-school{min-height:18px;line-height:18px}
+    .modifiers-chart:has(.pager) .modifier:nth-child(2) .modifier-school{max-width:calc(100% - 64px)}
+  }
+}
 </style>

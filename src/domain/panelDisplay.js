@@ -8,6 +8,16 @@ export const 百分比 = value => `${(Math.floor((value || 0) * 10 + 1e-8) / 10)
 export const 进度 = (value, max) => Math.max(0, Math.min(100, max ? value / max * 100 : 0))
 export const 进度颜色 = ratio => `hsl(${Math.round(Math.max(0, Math.min(100, ratio)) * 1.2)}, 62%, 43%)`
 
+// 武器及招式增伤、对首领/玩家增伤、通用增伤，最后展示穿透。
+function 增益排序(key) {
+  if (/武学增伤$|·/.test(key)) return 0
+  if (key.includes('首领')) return 1
+  if (key.includes('玩家')) return 2
+  if (key.startsWith('全武学')) return 3
+  if (key.startsWith('全')) return 4
+  return key.includes('穿透') ? 6 : 5
+}
+
 export function 装备属性上限(name, school, variant) {
   let slots = 0
   for (const part of 部位顺序) {
@@ -41,7 +51,7 @@ export function 取面板展示(state) {
     }
     const [schoolName, moveName] = key.includes('·') ? key.split('·') : ['', key]
     return { key, schoolName, moveName, value: raw[key], effective: panel.增益有效面板[key], max, ratio: max ? 进度(raw[key], max) : 100, percent: 是百分比词条(key) || /加成|增伤|增效|增疗/.test(key) }
-  })
+  }).sort((a, b) => 增益排序(a.key) - 增益排序(b.key) || a.key.localeCompare(b.key, 'zh-CN'))
   return { panel, raw, attacks, rates, direct, modifiers }
 }
 
@@ -51,7 +61,7 @@ export function 显示增益(item, effective = false) {
 }
 
 export function 显示攻击(item) {
-  const bound = (value, bonus) => `${整数(value)}${bonus ? `(+${整数(bonus)})` : ''}`
+  const bound = (value, bonus) => `${整数(value)}${bonus ? `(⊃${整数(bonus)})` : ''}`
   return item.min > item.max
     ? `最小 ${bound(item.min, item.absorbedMin)} / 最大 ${bound(item.max, item.absorbedMax)}`
     : `${bound(item.min, item.absorbedMin)}～${bound(item.max, item.absorbedMax)}`
