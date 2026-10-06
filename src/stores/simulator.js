@@ -13,6 +13,8 @@ function 建全部装备() { return Object.fromEntries(部位顺序.map(s => [s,
 // 配装导入、装备弹窗共用这些实际游戏约束。
 export function 整理装备(装备, 部位, 流派, 变体) {
   const out = 建空白装备()
+  // 未标记品质的旧方案沿用金色；只记录紫色，避免默认值制造未保存修改。
+  if (装备?.品质 === '紫色') out.品质 = '紫色'
   const 清除防具定音 = ['头', '胸', '胫甲', '腕甲'].includes(部位) && 装备?.定音?.名称 && !取词条池('定音', 部位, 流派, 变体).includes(规范词条名称(装备.定音.名称))
   out.承音 = 装备?.承音 === true && !清除防具定音
   const used = new Set()
@@ -108,8 +110,8 @@ export const useSimulatorStore = defineStore('simulator', {
       return 清除数
     },
     保存部位(部位, 装备) { this.装备词条[部位] = 整理装备(装备, 部位, this.流派, this.变体) },
-    清除部位(部位) { this.装备词条[部位] = 建空白装备() },
-    重置装备() { this.装备词条 = 建全部装备() },
+    清除部位(部位) { this.装备词条[部位] = { ...建空白装备(), ...(this.装备词条[部位]?.品质 === '紫色' ? { 品质: '紫色' } : {}) } },
+    重置装备() { for (const 部位 of 部位顺序) this.清除部位(部位) },
     设置心法列表(列表) {
       this.心法列表 = [...new Set(列表)].filter(n => Object.hasOwn(心法属性, n)).slice(0, 4)
     },

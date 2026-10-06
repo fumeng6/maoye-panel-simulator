@@ -5,7 +5,7 @@
       <section v-for="section in visibleGroups" :key="section.key" class="equipment-group">
         <div class="slots-grid">
           <button v-for="slot in section.slots" :key="slot.key" class="slot-card" :disabled="!store.已选流派" :aria-label="`配置${slot.name}词条`" @click="openAffinityConfig(slot)">
-            <div class="slot-header"><span class="slot-name">{{ slot.name }}<small v-if="weaponName(slot)">{{ weaponName(slot) }}</small></span><span v-if="store.装备词条[slot.key]?.承音" class="chengyin-label">承音</span></div>
+            <div class="slot-header"><span class="slot-name">{{ slot.name }}<small v-if="weaponName(slot)">{{ weaponName(slot) }}</small></span><span class="slot-status"><span class="equipment-quality" :class="quality(slot.key) === '紫色' ? 'quality-purple' : 'quality-gold'" :title="`${quality(slot.key)}品质`">{{ quality(slot.key) === '紫色' ? '紫' : '金' }}</span><span v-if="store.装备词条[slot.key]?.承音" class="chengyin-label">承音</span></span></div>
             <div class="slot-content"><div v-for="tone in Object.values(词条槽)" :key="tone" class="affinity-item" :class="[tone === '宫' ? 'tone-gold' : tone === '定音' ? 'tone-green' : 'tone-blue', {empty: !store.装备词条[slot.key]?.[tone]?.名称}]" :title="fullLabel(slot.key,tone)"><span class="affinity-slot">{{ tone === '定音' ? '定' : tone }}</span><span class="affinity-name" :class="{ 'split-dingyin': isArmorDingyin(slot.key, tone) }"><span v-for="(line, index) in overviewLines(slot.key, tone)" :key="index" :style="isArmorDingyin(slot.key, tone) && index === 1 ? { '--name-length': line.length } : undefined">{{ line }}</span></span><span class="affinity-value">{{ store.装备词条[slot.key]?.[tone]?.名称 ? 格式化词条(store.装备词条[slot.key][tone].名称, store.装备词条[slot.key][tone].值) : '—' }}</span></div></div>
           </button>
         </div>
@@ -35,6 +35,7 @@ async function clearAll() {
   try { await ElMessageBox.confirm('清空八件装备的所有词条？流派、心法和套装会保留。', '清空词条', { confirmButtonText: '清空', cancelButtonText: '取消' }); store.重置装备() } catch (e) { if (e !== 'cancel' && e !== 'close') throw e }
 }
 function weaponName(slot) { return 取流派配置(store.流派, store.变体)?.武器?.[slot.key] || '' }
+function quality(key) { return store.装备词条[key]?.品质 === '紫色' ? '紫色' : '金色' }
 function openAffinityConfig(slot) { currentSlot.value = { key: slot.key, name: [slot.name, weaponName(slot)].filter(Boolean).join(' · ') }; showAffinityDialog.value = true }
 function openNext() {
   const order = groups.flatMap(g => g.slots).map(s => s.key)
@@ -55,4 +56,5 @@ function fullLabel(key,tone) { const item = store.装备词条[key]?.[tone]; ret
 @media(max-height:760px){.equipment-manager{gap:8px}.equipment-groups{gap:8px}.slot-content{padding:5px;gap:4px}.slot-header{padding:6px 8px;min-height:32px}.affinity-item{padding:2px 4px}.group-heading h3{font-size:12px}}
 @media(max-width:1023px) and (max-height:720px){.slot-content{padding:3px;gap:2px;grid-template-rows:repeat(5,minmax(0,1fr)) minmax(28px,1.5fr)}.affinity-item{padding:1px 3px}.affinity-item:has(.split-dingyin){grid-template-rows:repeat(2,12px)}.affinity-item:has(.split-dingyin) .affinity-value{line-height:12px}.affinity-name{font-size:11px;line-height:12px}.affinity-value,.affinity-slot{font-size:11px}.slots-grid{gap:8px}.slot-header{min-height:28px;padding:5px 7px}.equipment-group{gap:5px}}
 @media(min-width:1024px) and (max-width:1150px){.equipment-groups{gap:10px}.slot-card{--dingyin-space:64px}.slot-content{padding:3px;gap:4px}.affinity-item{padding:2px;gap:2px}.affinity-value,.affinity-slot{font-size:11px}}
+.slot-status{display:flex;align-items:center;gap:4px;flex:none}.equipment-quality{display:inline-flex;align-items:center;justify-content:center;font-size:10px;line-height:16px;width:18px;border:1px solid var(--book-border);border-radius:4px;color:var(--book-color);background:var(--book-bg)}
 </style>

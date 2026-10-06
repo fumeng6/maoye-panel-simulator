@@ -13,7 +13,7 @@
  *   = 原始总和 -> 判定有效值
  */
 
-import { 基础面板 } from '../data/baseStats.js'
+import { 基础面板, 装备基础数值 } from '../data/baseStats.js'
 import { 转化系数, 判定常量, 增益抗性 } from '../data/constants.js'
 import {
   取流派配置,
@@ -58,6 +58,11 @@ function 计算折算比例(面板, 需求) {
  */
 export function 计算面板({ 流派, 变体, 套装选择 = {}, 心法列表 = [], 装备词条 = {} } = {}) {
   const 面板 = { ...基础面板 }
+  // 每件装备按品质计入白值；防具四件没有攻击白值。
+  for (const [部位, 金色数值] of Object.entries(装备基础数值.金色)) {
+    const 白值 = 装备词条[部位]?.品质 === '紫色' ? 装备基础数值.紫色[部位] : 金色数值
+    for (const [名称, 值] of Object.entries(白值)) 累加(面板, 名称, 值)
+  }
   // 装备词条中"受增益抗性影响"部分（定音/神力）的累加账，单位为内部口径
   const 装备增益账 = {}
   const 流派配置 = 取流派配置(流派, 变体)

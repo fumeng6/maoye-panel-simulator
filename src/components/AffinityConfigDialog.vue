@@ -1,5 +1,9 @@
 <template>
   <el-dialog :model-value="modelValue" :title="`配置 ${slotName} 词条`" :width="isMobile ? 'calc(100vw - 24px)' : '660px'" :class="['equipment-dialog', { 'mobile-sheet': isMobile }]" append-to-body :close-on-click-modal="false" @update:model-value="emit('update:modelValue', $event)">
+    <div class="quality-control" role="group" aria-label="装备品质">
+      <span>装备品质</span>
+      <button v-for="value in ['金色', '紫色']" :key="value" type="button" class="quality-option" :class="[value === '紫色' ? 'quality-purple' : 'quality-gold', { 'is-selected': quality === value }]" :aria-pressed="quality === value" @click="quality = value">{{ value }}</button>
+    </div>
     <div ref="slotsList" class="slots-list">
       <div v-for="slot in Object.values(词条槽)" :key="slot" class="slot-row">
         <label class="slot-label"><el-tag :type="slot === '宫' ? 'warning' : slot === '定音' ? 'success' : 'primary'">{{ slot }}</el-tag></label>
@@ -17,7 +21,7 @@
     <div class="edit-actions">
       <el-button :disabled="!canChengyin" @click="toggleChengyin">{{ draft.承音 ? '解除承音' : '应用承音' }}</el-button>
       <el-button :disabled="!filled" @click="fillMax">填满已选词条</el-button>
-      <el-button :disabled="!filled" @click="draft = 建空白装备()">清空此部位</el-button>
+      <el-button :disabled="!filled" @click="clearPart">清空此部位</el-button>
     </div>
     <div v-if="preview" class="preview-panel">
       <span>应用后外功攻击</span><strong>{{ Math.floor(preview.原始面板.最小外功攻击) }}～{{ Math.floor(preview.原始面板.最大外功攻击) }}</strong>
@@ -42,6 +46,10 @@ const emit = defineEmits(['update:modelValue', 'next'])
 const store = useSimulatorStore()
 const isMobile = useMediaQuery('(max-width: 1023px)')
 const draft = ref(建空白装备())
+const quality = computed({
+  get: () => draft.value.品质 === '紫色' ? '紫色' : '金色',
+  set: value => { if (value === '紫色') draft.value.品质 = '紫色'; else delete draft.value.品质 }
+})
 const slotsList = ref(null)
 const unlocked = computed(() => 五音槽位.every(s => draft.value[s]?.名称))
 const canChengyin = computed(() => unlocked.value && draft.value.定音.名称)
@@ -82,6 +90,7 @@ function changeAttribute(slot, name) {
   if (!unlocked.value) { draft.value.定音 = { 名称: '', 值: 0 }; draft.value.承音 = false; delete draft.value.承音前数值 }
 }
 function fillMax() { for (const slot of Object.values(词条槽)) if (draft.value[slot].名称) draft.value[slot].值 = maximum(slot) }
+function clearPart() { const value = quality.value; draft.value = 建空白装备(); quality.value = value }
 function toggleChengyin() {
   if (!draft.value.承音) {
     draft.value.承音前数值 = Object.fromEntries(五音槽位.map(s => [s, { ...draft.value[s] }]))
@@ -109,6 +118,11 @@ watch(() => [props.modelValue, props.slotKey], () => {
 }, { immediate: true })
 </script>
 <style scoped>
+.quality-control { display:flex; align-items:center; gap:8px; margin-bottom:16px; font-size:13px; color:var(--text); }
+.quality-control > span { margin-right:4px; }
+.quality-option { border:1px solid var(--border); border-radius:6px; background:var(--surface); color:var(--muted); padding:5px 16px; font:inherit; cursor:pointer; }
+.quality-option.is-selected { border-color:var(--book-border); background:var(--book-bg); color:var(--book-color); font-weight:650; }
+.quality-option:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 .slots-list { display: flex; flex-direction: column; gap: 16px; }
 .slot-row { display: grid; grid-template-columns: 48px minmax(0, 1fr) 138px; align-items: start; gap: 10px; }
 .slot-label { padding-top: 4px; }
@@ -125,6 +139,7 @@ watch(() => [props.modelValue, props.slotKey], () => {
 .preview-delta { color: var(--color-primary); font-size: 12px; }
 .error-text { font-size: 13px; color: #b93a3a; }
 @media (max-width: 1023px) {
+  .quality-control { margin-bottom:12px; }
   .slots-list { gap:12px }
   .slot-row { grid-template-columns:32px minmax(0,1fr) 84px; align-items:center; gap:6px }
   .slot-label { padding-top:0 }.slot-label .el-tag { padding:0 5px }

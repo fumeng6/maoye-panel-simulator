@@ -111,6 +111,18 @@ def number(sheet, address):
     return raw
 
 
+def equipment_base_stats(sheet):
+    """主副武器列是两件合计，拆为单件；环、佩属于武器四件。"""
+    result = {}
+    for quality, weapon, ring, pendant in [("金色", "E", "F", "G"), ("紫色", "L", "M", "N")]:
+        weapon_stats = {"最小外功攻击": number(sheet, f"{weapon}11") / 2,
+                        "最大外功攻击": number(sheet, f"{weapon}12") / 2}
+        result[quality] = {"主武器": weapon_stats, "副武器": dict(weapon_stats),
+                           "环": {"最小外功攻击": number(sheet, f"{ring}11")},
+                           "佩": {"最大外功攻击": number(sheet, f"{pendant}12")}}
+    return result
+
+
 def if_number(sheet, address):
     """只读取已知 IF 公式中的数字分支，不执行公式或采用当前选项的缓存。"""
     formula = sheet.get(address, (None, None))[1] or ""
@@ -383,9 +395,10 @@ def import_record(sheets, data):
             entry["取值"] = mapping
         if overrides:
             entry["数值覆盖"] = overrides
-    # 武器和防具白值常驻；未选择套装也不丢失已穿戴装备的白值。
-    base["基础来源"]["武器白值"] = {"最小外功攻击": number(sheet, "E11"), "最大外功攻击": number(sheet, "E12")}
-    base["基础来源"]["防具白值"] = {"最小外功攻击": number(sheet, "F11"), "最大外功攻击": number(sheet, "G12")}
+    # 白值由每件装备的品质决定；环、佩同属武器四件，防具没有攻击白值。
+    base["基础来源"].pop("武器白值", None)
+    base["基础来源"].pop("防具白值", None)
+    base["装备基础数值"] = equipment_base_stats(sheet)
     level_text = value(sheets["基础数据汇总"], "A3") or ""
     for label in ["人物等级", "大世界等级"]:
         match = re.search(label + r"[^\d]*(\d+)", level_text)
@@ -423,7 +436,7 @@ def import_record(sheets, data):
 def import_diy(sheets, data):
     sheet = sheets["DIY"]
     base = data["基础属性"]
-    # B4/B5 已含装备白值和叠音；套装仅再加额外效果，避免重复计入。
+    # B4/B5 已含装备白值和叠音；拆出金色白值后才能按单件品质替换。
     current = {}
     for part in base["基础来源"].values():
         for key, raw in part.items():
@@ -434,7 +447,10 @@ def import_diy(sheets, data):
                     "会意伤害加成": number(sheet, "B12") * 100,
                     "最小无相攻击": number(sheet, "B21"), "最大无相攻击": number(sheet, "B22"),
                     "劲": number(sheet, "B23"), "敏": number(sheet, "B24"), "势": number(sheet, "B25")})
-    base["基础来源"] = {"DIY基础白值（已含装备白值与叠音）": current}
+    for part in base["装备基础数值"]["金色"].values():
+        for key, raw in part.items():
+            current[key] -= raw
+    base["基础来源"] = {"DIY基础白值（已含叠音，不含装备白值）": current}
     base["武库"] = {"最小属性攻击": if_number(sheet, "G11"), "最大属性攻击": if_number(sheet, "H11")}
     data["规则"]["判定常量"]["判定抗性"] = number(sheet, "B1") - 1
     data["规则"]["增益抗性"] = number(sheet, "D1") - 1
@@ -585,7 +601,7 @@ def main():
                               "心法的本流派表示专属归属；换流派装备该心法不会自动改变其品质数值"]
         data["装备词条"]["元数据"]["说明"] = "范围与承音采用记录表最后一页；保留攻击属性及牵丝霖的明川药典·治疗技增疗定音。冠胄、胸甲神力统一为全奇术增伤。"
     else:
-        metadata["基础攻击口径"] = "DIY 基础攻击已含装备白值与叠音；武器套装只加额外效果；默认本系武库"
+        metadata["基础攻击口径"] = "DIY 基础攻击拆出装备白值，按单件品质加回；保留叠音；武器套装只加额外效果；默认本系武库"
     for line in differences(before, data):
         print(line)
     if args.write:
